@@ -39,9 +39,12 @@ colors.OAYA<-c("#66C2A5","#FC8D62")
 data.path<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
                   "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
                   "TrimmedData/OAYA_LiqPos_RewardData.csv")
-runkey.path<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
-                    "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
-                    "TrimmedData/OAYA_LiqPos_runkey.csv")
+data.path.base<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
+                  "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
+                  "TrimmedData/OAYA_LiqPos_BaselineData.csv")
+data.path.selfreport<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
+                       "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/Redcap/",
+                       "OAYA_selfreport.csv")
 runkey.path<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
                     "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
                     "TrimmedData/OAYA_LiqPos_runkey.csv")
@@ -53,21 +56,25 @@ figure.path<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
 ```{r}
 # Read in the data
 data<-read.csv(data.path,header = TRUE) %>% select(-X) 
+data.base<-read.csv(data.path.base, header = TRUE) %>% select(-X)
 runkey<-read.csv(runkey.path, header = TRUE) %>% filter(include=="yes")
 
 # Formatting incentive data
 incentive<- data %>% inner_join(y = runkey, by = c("subID","block","group"))  %>%
   mutate(subRewarded=(RT<critRT & ACC==1)*1,
          ERR=ifelse(ACC==0,1,0), 
+         condition="incentive",
          block=factor(block, levels=c(7,8,9), labels=c(1,2,3)),
          money=factor(rewType, levels=c("Reward1","Reward2","Reward4"), labels=c("$","$$","$$$$")),
          moneyCode=factor(rewType, levels=c("Reward1","Reward2","Reward4"), labels=c(-1,0,1)),
+         moneyweight=factor(rewType, levels=c("Reward1","Reward2","Reward4"), labels=c(.25,.50,1)),
          liqCode=factor(liquid, levels=c("saltwater","neutral","juice"), labels=c(-1,0,1)),
          liqCodeJvN=factor(liquid, levels=c("saltwater","neutral","juice"), labels=c(0,-1,1)),
          liqCodeSvN=factor(liquid, levels=c("saltwater","neutral","juice"), labels=c(-1,1,0)),
          groupCode=factor(group, levels=c("YA","OA"), labels=c(0,1)),
          blockCode=factor(block, levels=c(1,2,3), labels=c(-1,0,1)))
 incentive$moneyCode<-as.numeric(levels(incentive$moneyCode)[incentive$moneyCode])
+incentive$moneyweight<-as.numeric(levels(incentive$moneyweight)[incentive$moneyweight])
 incentive$liqCode<-as.numeric(levels(incentive$liqCode)[incentive$liqCode])
 incentive$liqCodeJvN<-as.numeric(levels(incentive$liqCodeJvN)[incentive$liqCodeJvN])
 incentive$liqCodeSvN<-as.numeric(levels(incentive$liqCodeSvN)[incentive$liqCodeSvN])
@@ -126,6 +133,7 @@ incentive9.means = incentive %>% group_by(subID, liquid, money, group, block) %>
   ungroup(subID) %>% mutate(subID=as.factor(subID))
 ```
 
+
 # Reward Rate Plots
 ## Plot: histogram of reward rate by age group
 ```{r}
@@ -133,7 +141,7 @@ RR.sum=summarySE2(data=group.means, measurevar = "meanRR", groupvars = c("group"
 pandoc.table(RR.sum)
 p.RR.0<-ggplot() + 
   geom_bar(data = RR.sum, aes(x=group, y=meanRR, fill=group), 
-           color="black", fill=colors.OAYA, stat="identity") + 
+           color="black",stat="identity") + 
   geom_errorbar(data = RR.sum, 
                 mapping=aes(x=group, y=meanRR,
                             ymin=meanRR-se, ymax=meanRR+se), 
@@ -141,8 +149,13 @@ p.RR.0<-ggplot() +
   geom_point(data = group.means, aes(x=group, y=meanRR),
              stat="identity", position=position_jitter(w=.3), alpha=0.5) +
   geom_hline(yintercept = .30, linetype="dashed") +
+  geom_hline(yintercept = .35) +
+  geom_hline(yintercept = .25) +
+  annotate("rect", xmin = 0, xmax = 3, ymin = .25, ymax = .35,
+        alpha = .2) + 
   xlab("Age Group") + ylab("Reward Rate") +
   coord_cartesian(ylim=c(0,.85)) +
+  scale_fill_brewer(palette="Set2") +
   theme(#plot.title=element_text(size=22,face="bold", vjust=2),
         axis.title=element_text(size=12,face = "bold"),
         axis.text=element_text(size=14),
@@ -150,6 +163,15 @@ p.RR.0<-ggplot() +
         strip.text.x = element_text(size = 12))
 p.RR.0
 ```
+
+## Binomial Test
+```{r}
+binom.test(x = 86, n = 288, p = .05, alternative = "two.sided")
+```
+
+
+
+
 
 ## Plot: barplot of reward rate by monetary reward and age group
 ```{r}
@@ -226,21 +248,22 @@ p.RT.1
 # Generalized Linear Mixed Effects Models of RT Effects by Age and Money
 ## RT by Monetary Reward and Age Group
 ```{r}
-# Monetary Reward 
-incentiveRT<- incentive %>% filter(ACC==1) %>% group_by(subID) %>%
-  mutate(zRT = scale(RT, center=FALSE))
-           #(RT - mean(RT)) / sd(RT))
+incentiveRT<- incentive %>% filter(ACC==1) 
+# %>% group_by(subID) %>%
+# mutate(zRT = scale(RT, center=FALSE))
+
+# Monetary Reward x Group Effects
 m.RT.money <-lmer(formula = RT ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentiveRT, REML = FALSE)
 summary(m.RT.money)
 
 # YA
-m.RT.money.YA <-lmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
+m.RT.money.YA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentiveRT,group=="YA"))
 summary(m.RT.money.YA)
 
 # OA
-m.RT.money.OA <-lmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
+m.RT.money.OA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"))
 summary(m.RT.money.OA)
 ```
@@ -292,426 +315,941 @@ summary(m.ACC.money.OA)
 ```
 
 \newpage
-# Transition Effects From Baseline to Incentive Blocks
-## Plot: Transition 
+# Combined RT-Accuracy Plot
 ```{r}
-
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-\newpage
-## Plot: mean reward rate by liquid type and age group
-```{r, message=FALSE}
-RR.sum=summarySEwithin2(data=liq.means, measurevar = "meanRR", withinvars = c("liquid"),
-                        betweenvars = c("group"), idvar = "subID")
-pandoc.table(RR.sum)
-p.RR.2<-ggplot(RR.sum, aes(x=liquid, y=meanRR)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", fill='thistle',
-           stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanRR-se, ymax=meanRR+se), width=.2) +
-  facet_grid(.~group) +
-  xlab("Liquid Incentive") + ylab("Reward Rate") +
-  #ggtitle("Task Performance Across Liquid Type") +
-  coord_cartesian(ylim=c(.4,.85)) +
-  scale_fill_discrete(name="Monetary Reward") +
+RTACC.sum<-full_join(x = RT.sum, y = ACC.sum, by=c("group","money","N"))
+p.RTACC.1<-ggplot(data = RTACC.sum, aes(x = meanRT, y = meanACC, color=group)) + 
+  geom_errorbar(aes(ymin=meanACC-se.y, ymax=meanACC+se.y), width=0, size=.75) +
+  geom_errorbarh(aes(xmin=meanRT-se.x, xmax=meanRT+se.x), height=0, size=.75) +
+  geom_point(aes(shape=money), size=1.5, color="black") +
+  xlab("Response Time (ms)") + ylab("Accuracy") +
+  coord_cartesian(xlim=c(500,800), ylim=c(.75,.9)) +
+  scale_color_brewer(palette="Set2") +
+  scale_fill_brewer(palette = "Set2") +
   theme(#plot.title=element_text(size=22,face="bold", vjust=2),
         axis.title=element_text(size=12,face = "bold"),
         axis.text=element_text(size=14),
-        legend.position="none",
+        #legend.position="none",
         strip.text.x = element_text(size = 12))
-p.RR.2
+p.RTACC.1
 ```
 
 \newpage
-## Plot: mean reward rate by money, liquid, and age group
+## Plotting RT between baseline and incentive blocks.
+```{r}
+# Merge baseline and incentive data
+cond.RT.base <- data.base %>% 
+  mutate(block=0) %>%
+  select(subID, group, Trial, RT, ACC, condition, block) %>%
+  filter(ACC==1)
+cond.RT.rew <- incentive %>% select(subID, group, Trial, RT, ACC, condition, block) %>%
+  filter(ACC==1)
+cond.RT<-rbind(cond.RT.base,cond.RT.rew) 
+
+RT.sum=summarySEwithin2(data=cond.RT, measurevar = "RT", withinvars = c("condition"),
+                        betweenvars = c("group"), idvar = "subID")
+pandoc.table(RT.sum)
+p.RT.2<-ggplot(data = RT.sum, aes(x=group, y = RT, fill=condition)) +
+  geom_bar(position=position_dodge(width=0.8), color="black",
+           stat="identity", width=0.8) + 
+  geom_errorbar(position=position_dodge(width=0.8),
+                aes(ymin=RT-se, ymax=RT+se), width=.2) +
+  xlab("Age Group") + ylab("Response Time (ms)") +
+  labs(fill = "Block") +
+  coord_cartesian(ylim=c(500,1000)) +
+  scale_fill_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position=c(.85,.85),
+    legend.box.background = element_rect(colour = "black"),
+    strip.text.x = element_text(size = 12))
+p.RT.2
+```
+
+## RT by Baseline vs Incentive Block and Age Group
+```{r}
+cond.RT<-cond.RT %>%
+  mutate(groupCode=factor(group, levels=c("YA","OA"), labels=c(0,1)),
+         conditionCode=factor(condition, levels=c("baseline","incentive"), labels=c(1,0)))
+cond.RT$groupCode<-as.numeric(levels(cond.RT$groupCode)[cond.RT$groupCode])
+cond.RT$conditionCode<-as.numeric(levels(cond.RT$conditionCode)[cond.RT$conditionCode])
+# summarizing to have one datapoint per subject per condition.
+cond.RT.sum <- cond.RT %>% group_by(subID,group,condition) %>%
+  summarise(meanRT = mean(RT))
+
+# OA baseline vs incentive block
+t.test(x = subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT,
+       y = subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT,
+       paired = TRUE)
+
+# YA baseline vs incentive block
+t.test(x = subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT,
+       y = subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT,
+       paired = TRUE)
+
+# # Block x Group Effects
+# m.RT.block <-lmer(formula = RT ~ conditionCode * groupCode + (1|subID),
+#           data = cond.RT, REML = FALSE)
+# summary(m.RT.block)
+# 
+# # YA
+# m.RT.block.YA <-lmer(formula = RT ~ conditionCode + (1|subID),
+#           data = subset(cond.RT,group=="YA"))
+# summary(m.RT.block.YA)
+# 
+# # OA
+# m.RT.block.OA <-lmer(formula = RT ~ conditionCode + (1|subID),
+#           data = subset(cond.RT,group=="OA"))
+# summary(m.RT.block.OA)
+```
+
+\newpage
+## Plotting Accuracy between baseline and incentive blocks
+```{r}
+# Merge baseline and incentive data
+cond.ACC.base <- data.base %>% mutate(block=0) %>%
+  select(subID, group, Trial, RT, ACC, condition, block)
+cond.ACC.rew <- incentive %>% select(subID, group, Trial, RT, ACC, condition, block)
+cond.ACC<-rbind(cond.ACC.base,cond.ACC.rew) 
+
+ACC.sum=summarySEwithin2(data=cond.ACC, measurevar = "ACC", withinvars = c("condition"),
+                        betweenvars = c("group"), idvar = "block")
+p.ACC.2<-ggplot(data = ACC.sum, aes(x=group, y = ACC, fill=condition)) +
+  geom_bar(position=position_dodge(width=0.8), color="black",
+           stat="identity", width = 0.8) + 
+  geom_errorbar(position=position_dodge(width=0.8),
+                aes(ymin=ACC-se, ymax=ACC+se), width=.2) +
+  xlab("Age Group") + ylab("Accuracy") +
+  labs(fill = "Block") +
+  coord_cartesian(ylim=c(.7,1)) +
+  scale_fill_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position=c(.85,.85),
+    legend.box.background = element_rect(colour = "black"),
+    strip.text.x = element_text(size = 12))
+p.ACC.2
+```
+
+## Accuracy by Baseline vs Incentive Block and Age Group
+```{r}
+cond.ACC<-cond.ACC %>%
+  mutate(groupCode=factor(group, levels=c("YA","OA"), labels=c(0,1)),
+         conditionCode=factor(condition, levels=c("baseline","incentive"), labels=c(1,0)))
+cond.ACC$groupCode<-as.numeric(levels(cond.ACC$groupCode)[cond.ACC$groupCode])
+cond.ACC$conditionCode<-as.numeric(levels(cond.ACC$conditionCode)[cond.ACC$conditionCode])
+# summarizing to have one datapoint per subject per condition.
+cond.ACC.sum <- cond.ACC %>% group_by(subID,group,condition) %>%
+  summarise(meanACC = mean(ACC))
+
+# OA baseline vs incentive block
+t.test(x = subset(cond.ACC.sum, group=="OA" & condition=="baseline")$meanACC,
+       y = subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
+       paired = TRUE)
+
+# YA baseline vs incentive block
+t.test(x = subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
+       y = subset(cond.ACC.sum, group=="YA" & condition=="incentive")$meanACC,
+       paired = TRUE)
+
+# # Block x Group Effects
+# m.ACC.block <-glmer(formula = ACC ~ conditionCode * groupCode + (1|subID),
+#           data = cond.ACC, family="binomial")
+# summary(m.ACC.block)
+# 
+# # YA
+# m.ACC.block.YA <-glmer(formula = ACC ~ conditionCode + (1|subID),
+#           data = subset(cond.ACC,group=="YA"), family="binomial")
+# summary(m.ACC.block.YA)
+# 
+# # OA
+# m.ACC.block.OA <-glmer(formula = ACC ~ conditionCode + (1|subID),
+#           data = subset(cond.ACC,group=="OA"), family="binomial")
+# summary(m.ACC.block.OA)
+```
+
+\newpage
+# Transition Effects From Baseline to Incentive Blocks
+## Plot: Transition between last 20 trials of baseline and first 20 trials of first incentive block.
+```{r}
+transition.base <- data.base %>% select(subID, group, Trial, RT, ACC, condition) %>%
+  filter(Trial>=77) %>%
+  mutate(Trial=Trial-97)
+transition.reward <- incentive %>% filter(block==3 & Trial<=20) %>%
+  select(subID, group, Trial, RT, ACC) %>%
+  mutate(condition="incentive")
+transition=rbind(transition.base,transition.reward)
+transition <- transition %>% arrange(subID, condition, Trial) %>%
+  group_by(subID) %>% 
+  mutate(RT_zscore = scale(RT),
+         ACC=as.numeric(ACC),
+         groupCode=factor(group, levels=c("YA","OA"), labels=c(0,1)),
+         conditionCode=factor(condition, levels=c("baseline","incentive"), labels=c(1,0))) 
+transition$groupCode<-as.numeric(levels(transition$groupCode)[transition$groupCode])
+transition$conditionCode<-as.numeric(levels(transition$conditionCode)[transition$conditionCode])
+ix_NA<-which(transition$ACC==0)
+transition$RT[ix_NA]<-""
+
+trans.sum<-summarySEwithin2(data = transition, measurevar = "RT_zscore", betweenvars = "group",
+                            withinvars = c("Trial","condition"), idvar = "subID", na.rm = TRUE)
+trans.sum <- trans.sum  %>% arrange(group,Trial) %>%
+  unite("group_cond", c("group","condition"), sep="_", remove = FALSE)
+trans.sum$Trial<-as.numeric(levels(trans.sum$Trial)[trans.sum$Trial])
+
+# Plotting z-scored RT
+p.trans.1<-ggplot(data = trans.sum, mapping = aes(x = Trial, y = RT_zscore, shape=group_cond)) +
+  geom_point(aes(color=group),size=3) +
+  geom_smooth(method="lm", aes(group=group_cond), color="black", alpha=.3) +
+  facet_grid(group~.) +
+  coord_cartesian( ylim=c(-.9,.9)) +
+  scale_color_brewer(palette="Set2") +
+  scale_fill_brewer(palette = "Set2") +
+  xlab("Trial Number") + ylab("Response Time (z-scored)") +
+  labs(shape = "Block by Age Group", color = "Age Group") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face="bold"),
+        axis.text=element_text(size=14),
+        #legend.position="none",
+        #legend.title=element_text(),
+        strip.text.x = element_text(size = 10))
+p.trans.1
+```
+
+
+\newpage
+## GLM: RT by trial, condition, and age group
+Transition between last 20 trials of baseline and first 20 trials of first incentive block.
+```{r}
+# GLM on zscored RT
+m.trans <-lmer(formula = RT_zscore ~ Trial * conditionCode * groupCode + (1|subID),
+          data = transition)
+summary(m.trans)
+
+# YA only
+m.trans.YA <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
+          data = subset(transition, group=="YA"))
+summary(m.trans.YA)
+
+# OA only
+m.trans.OA <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
+          data = subset(transition, group=="OA"))
+summary(m.trans.OA)
+
+# OA baseline
+m.trans.OA.base <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
+          data = subset(transition, group=="OA" & condition=="baseline"))
+summary(m.trans.OA.base)
+# OA incentive
+m.trans.OA.incentive <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
+          data = subset(transition, group=="OA" & condition=="incentive"))
+summary(m.trans.OA.incentive)
+```
+
+## Plot: Transition of Accuracy between baseline and incentive block
+```{r}
+trans.sum<-summarySEwithin2(data = transition, measurevar = "ACC", betweenvars = "group",
+                            withinvars = c("Trial","condition"), idvar = "subID", na.rm = TRUE)
+trans.sum <- trans.sum  %>% arrange(group,Trial) %>%
+  unite("group_cond", c("group","condition"), sep="_", remove = FALSE)
+trans.sum$Trial<-as.numeric(levels(trans.sum$Trial)[trans.sum$Trial])
+
+# Plotting Accuracy
+p.trans.2<-ggplot(data = trans.sum, mapping = aes(x = Trial, y = ACC, shape=group_cond)) +
+  geom_point(aes(color=group),size=3) +
+  geom_smooth(method="lm", aes(group=group_cond), color="black", alpha=.3) +
+  facet_grid(group~.) +
+  coord_cartesian( ylim=c(0.6,1)) +
+  scale_color_brewer(palette="Set2") +
+  scale_fill_brewer(palette = "Set2") +
+  xlab("Trial Number") + ylab("Accuracy") +
+  labs(shape = "Block by Age Group", color = "Age Group") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face="bold"),
+        axis.text=element_text(size=14),
+        #legend.position="none",
+        #legend.title=element_text(),
+        strip.text.x = element_text(size = 10))
+p.trans.2
+```
+
+## GLM: Accuracy by trial, condition, and age group
+Transition between last 20 trials of baseline and first 20 trials of first incentive block.
+```{r}
+# GLM on zscored ACC
+m.trans.ACC <-glmer(formula = ACC ~ Trial * conditionCode * groupCode + (1|subID),
+          data = transition, family="binomial")
+summary(m.trans.ACC)
+
+# YA only
+m.trans.ACC.YA <-glmer(formula = ACC ~ Trial * conditionCode + (1|subID),
+          data = subset(transition, group=="YA"), family="binomial")
+summary(m.trans.ACC.YA)
+
+# OA only
+m.trans.ACC.OA <-glmer(formula = ACC ~ Trial * conditionCode + (1|subID),
+          data = subset(transition, group=="OA"), family="binomial")
+summary(m.trans.ACC.OA)
+
+# OA only baseline
+m.trans.ACC.OA.baseline <-glmer(formula = ACC ~ Trial + (1|subID),
+          data = subset(transition, group=="OA" & condition=="baseline"), family="binomial")
+summary(m.trans.ACC.OA.baseline)
+# OA only incentive
+m.trans.ACC.OA.incentive <-glmer(formula = ACC ~ Trial + (1|subID),
+          data = subset(transition, group=="OA" & condition=="incentive"), family="binomial")
+summary(m.trans.ACC.OA.incentive)
+```
+
+\newpage
+# Motivational Integration Effects in YA and OA
+## Plot: Reward rate by monetary reward, liquid, and age group
 ```{r}
 RR.sum=summarySEwithin2(data=incentive9.means, measurevar = "meanRR",
                         withinvars = c("money","liquid"), betweenvars = c("group"),
                         idvar = "subID")
 pandoc.table(RR.sum)
 # first plot
-p.RR.3<-ggplot(RR.sum, aes(x=liquid, y=meanRR, fill=money)) +
+p.RR.2<-ggplot(RR.sum, aes(x=liquid, y=meanRR, fill=money)) +
   geom_bar(position=position_dodge(width=0.8), color="black", 
            stat="identity", width=0.8) +
   geom_errorbar(position=position_dodge(width=0.8), 
                 aes(ymin=meanRR-se, ymax=meanRR+se), width=.2) +
-  xlab("Monetary Reward") + ylab("Reward Rate") +
+  xlab("Liquid Feedback") + ylab("Reward Rate") +
+  labs(fill = "Money") +
   facet_grid(.~group) +
-  #ggtitle("Punishment Avoidance Across Money and Liquid Type") +
-  scale_fill_brewer(palette="Pastel2") +
-  coord_cartesian(ylim=c(.4,.8)) +
-  scale_fill_discrete(name="Monetary Reward") +
+  geom_hline(yintercept = .30, linetype="dashed") +
+  scale_fill_brewer(palette="Set1") +
+  coord_cartesian(ylim=c(.3,.8)) +
+  #scale_fill_discrete(name="Monetary Reward") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=14),
+        legend.position="right",
+        strip.text.x = element_text(size = 12))
+p.RR.2
+```
+
+\newpage
+## Analysis: RR by money, liquid, and age group
+```{r}
+# Monetary Reward 
+m.RR.mot9<-glmer(formula = subRewarded ~ moneyCode * liqCode * groupCode + (1+moneyCode+liqCode|subID),
+          data = incentive, family="binomial")
+summary(m.RR.mot9)
+
+# YA
+m.RR.mot9.YA <-glmer(formula = subRewarded ~ moneyCode * liqCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="YA"), family="binomial")
+summary(m.RR.mot9.YA)
+# Juice vs Neutral
+m.RR.mot9.YA.JvN <-glmer(formula = subRewarded ~ moneyCode * liqCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="YA" && liquid!="saltwater"), family="binomial")
+summary(m.RR.mot9.YA.JvN)
+# Saltwater vs Neutral
+m.RR.mot9.YA.SvN <-glmer(formula = subRewarded ~ moneyCode * liqCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="YA" & liquid!="juice"), family="binomial")
+summary(m.RR.mot9.YA.SvN)
+
+# OA
+m.RR.mot9.OA <-glmer(formula = subRewarded ~ moneyCode * liqCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="OA"), family="binomial")
+summary(m.RR.mot9.OA)
+# # OA Saltwater Reward !
+# m.RR.mot9.OA <-glmer(formula = subRewarded ~ groupCode + (1|subID),
+#           data = subset(incentive,liquid=="saltwater" & rewType=="Reward1"), family="binomial")
+# summary(m.RR.mot9.OA)
+```
+
+## Plot: mean reward rate by block, money, and age group
+```{r}
+RR.sum=summarySEwithin2(data=incentive9.means, measurevar = "meanRR",
+                        withinvars = c("block","liquid"), betweenvars = c("group"),
+                        idvar = "subID")
+pandoc.table(RR.sum)
+# first plot
+p.RR.3<-ggplot(RR.sum, aes(x=block, y=meanRR, fill=liquid)) +
+  geom_bar(position=position_dodge(width=0.8), color="black", 
+           stat="identity", width=0.8) +
+  geom_errorbar(position=position_dodge(width=0.8), 
+                aes(ymin=meanRR-se, ymax=meanRR+se), width=.2) +
+  xlab("Incentive Block Number") + ylab("Reward Rate") +
+  labs(fill = "Liquid") +
+  facet_grid(.~group) +
+  geom_hline(yintercept = .30, linetype="dashed") +
+  scale_fill_brewer(palette="Set1") +
+  coord_cartesian(ylim=c(.3,.8)) +
   theme(#plot.title=element_text(size=22,face="bold", vjust=2),
         axis.title=element_text(size=12,face = "bold"),
         axis.text=element_text(size=14),
         legend.position="right",
         strip.text.x = element_text(size = 12))
 p.RR.3
-
-# second plot
-p.RR.4<-ggplot(RR.sum, aes(x=liquid, y=meanRR, fill=liquid)) +
-  geom_bar(position=position_dodge(width=0.8), 
-           color="black", stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanRR-se, ymax=meanRR+se), width=.2) +
-  facet_wrap(group~money) +
-  xlab("Liquid Punishment") + ylab("Reward Rate") +
-  #ggtitle("Task Performance Across Money and Liquid Type") +
-  coord_cartesian(ylim=c(.4,.8)) +
-  scale_fill_brewer(palette="Set3") +
-  #scale_fill_manual(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        #axis.text=element_text(size=14),
-        legend.position="top",
-        strip.text.x = element_text(size = 12))
-p.RR.4
-
-# ggplot(data = incentive9.means, mapping = aes(x = money, y = meanRR, col=subID, group=subID)) + 
-#   facet_grid(~liquid) + 
-#   geom_point() + 
-#   geom_line()
-```
-
-## Plot: mean reward rate by block and age group
-```{r, message=FALSE}
-RR.sum=summarySEwithin2(data=liq.means, measurevar = "meanRR", withinvars = c("block"),
-                        betweenvars = c("group"), idvar = "subID")
-pandoc.table(RR.sum)
-p.RR.5<-ggplot(RR.sum, aes(x=block, y=meanRR)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", 
-           fill='darkmagenta',stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanRR-se, ymax=meanRR+se), width=.2) +
-  facet_grid(.~group) +
-  xlab("Block") + ylab("Reward Rate") +
-  #ggtitle("Task Performance Across Liquid Type") +
-  coord_cartesian(ylim=c(.4,.85)) +
-  scale_fill_discrete(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        axis.text=element_text(size=14),
-        legend.position="none",
-        strip.text.x = element_text(size = 12))
-p.RR.5
-```
-
-## Plot: mean reward rate by block, money, and age group
-```{r}
-RR.sum=summarySEwithin2(data=incentive9.means, measurevar = "meanRR",
-                        withinvars = c("money","block"), betweenvars = c("group"),
-                        idvar = "subID")
-pandoc.table(RR.sum)
-# first plot
-p.RR.6<-ggplot(RR.sum, aes(x=block, y=meanRR, fill=money)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", 
-           stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanRR-se, ymax=meanRR+se), width=.2) +
-  xlab("Block") + ylab("Reward Rate") +
-  facet_grid(.~group) +
-  #ggtitle("Punishment Avoidance Across Money and Liquid Type") +
-  scale_fill_brewer(palette="Pastel2") +
-  coord_cartesian(ylim=c(.4,.8)) +
-  scale_fill_discrete(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        axis.text=element_text(size=14),
-        legend.position="top",
-        strip.text.x = element_text(size = 12))
-p.RR.6
 ```
 
 \newpage
-# Generalized Linear Mixed Effects Models of Reward Rate Effects by Condition (Money, Liquid, Block)
-
-## Omnibus Incentive Motivation Effects by Age Group
-
-## Reward Rate by Monetary Reward and Age Group
+## Analysis: RR by liquid, block, and age group
 ```{r}
-# Monetary Reward Effect
-m.RR.money <-glmer(formula = subRewarded ~ moneyCode * groupCode + (1+moneyCode|subID),
-          data = incentive, family = binomial)
-summary(m.RR.money)
-
-# YA
-m.RR.money.YA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,groupCode==0), family = binomial)
-summary(m.RR.money.YA)
-# Money $ (Low)
-m.RR.1.money.YA.rew1 <-glmer(formula = subRewarded ~ liqCode + (1+liqCode|subID),
-          data = subset(incentive, moneyCode==-1 & group=="YA"), family = binomial)
-summary(m.RR.1.money.YA.rew1)
-# Money $$ (Medium)
-m.RR.1.money.YA.rew2 <-glmer(formula = subRewarded ~ liqCode + (1+liqCode|subID),
-          data = subset(incentive, moneyCode==0 & group=="YA"), family = binomial)
-summary(m.RR.1.money.YA.rew2)
-# Money $$$$ (High)
-m.RR.1.money.YA.rew4 <-glmer(formula = subRewarded ~ liqCode + (1+liqCode|subID),
-          data = subset(incentive, moneyCode==1 & group=="YA"), family = binomial)
-summary(m.RR.1.money.YA.rew4)
+# Monetary Reward 
+m.RR.motblock <-glmer(formula = subRewarded ~ liqCode * blockCode * groupCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = incentive, family="binomial")
+summary(m.RR.motblock)
 
 # OA
-m.RR.money.OA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,group=="OA"), family = binomial)
-summary(m.RR.money.OA)
-# Money $ (Low)
-m.RR.money.OA.rew1 <-glmer(formula = subRewarded ~ liqCode + (1+liqCode|subID),
-          data = subset(incentive, moneyCode==-1 & group=="OA"), family = binomial)
-summary(m.RR.money.OA.rew1)
-# Money $$ (Medium)
-m.RR.money.OA.rew2 <-glmer(formula = subRewarded ~ liqCode + (1+liqCode|subID),
-          data = subset(incentive, moneyCode==0 & group=="OA"), family = binomial)
-summary(m.RR.money.OA.rew2)
-# Money $$$$ (High)
-m.RR.money.OA.rew4 <-glmer(formula = subRewarded ~ liqCode + (1+liqCode|subID),
-          data = subset(incentive, moneyCode==1 & group=="OA"), family = binomial)
-summary(m.RR.money.OA.rew4)
-```
+m.RR.motblock.OA <-glmer(formula = subRewarded ~ liqCode * blockCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="OA"), family="binomial")
+summary(m.RR.motblock.OA)
+# Money & Liquid Effects in Block 1
+m.RR.motblock.OA.b1 <-glmer(formula = subRewarded ~ liqCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="OA" & block==1), family="binomial")
+summary(m.RR.motblock.OA.b1)
+# Money & Liquid Effects in Block 2
+m.RR.motblock.OA.b2 <-glmer(formula = subRewarded ~ liqCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="OA" & block==2), family="binomial")
+summary(m.RR.motblock.OA.b2)
+# Money & Effects in Block 3
+m.RR.motblock.OA.b3 <-glmer(formula = subRewarded ~ liqCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="OA" & block==3), family="binomial")
+summary(m.RR.motblock.OA.b3)
 
-## Reward Rate by Liquid and Age Group
-```{r}
-# Monetary Reward Effect
-m.RR.liquid <-glmer(formula = subRewarded ~ moneyCode * liqCode * groupCode + (1+moneyCode|subID),
-          data = incentive, family = binomial)
-summary(m.RR.liquid)
+# # Block Effects between 1 & 2
+# m.RR.motblock.OA.b12 <-glmer(formula = subRewarded ~ moneyCode * blockCode + (1+moneyCode|subID),
+#           data = subset(incentive,group=="OA" & block!=3), family="binomial")
+# summary(m.RR.motblock.OA.b12)
+# # Block Effects between 2 & 3
+# m.RR.motblock.OA.b23 <-glmer(formula = subRewarded ~ moneyCode * blockCode + (1+moneyCode|subID),
+#           data = subset(incentive,group=="OA" & block!=1), family="binomial")
+# summary(m.RR.motblock.OA.b23)
 
 # YA
-m.RR.liquid.YA <-glmer(formula = subRewarded ~ moneyCode * liqCode + (1+moneyCode|subID),
-          data = subset(incentive,group=="YA"), family = binomial)
-summary(m.RR.liquid.YA)
-# Juice 
-m.RR.liquid.YA.juice <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive, liqCode==1 & group=="YA"), family = binomial)
-summary(m.RR.liquid.YA.juice)
+m.RR.motblock.YA <-glmer(formula = subRewarded ~ liqCode * blockCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="YA"), family="binomial")
+summary(m.RR.motblock.YA)
+# block 1
+m.RR.motblock.YA.b1 <-glmer(formula = subRewarded ~ liqCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="YA" & block==1), family="binomial")
+summary(m.RR.motblock.YA.b1)
+# block 2
+m.RR.motblock.YA.b2 <-glmer(formula = subRewarded ~ liqCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="YA" & block==2), family="binomial")
+summary(m.RR.motblock.YA.b2)
+# block 3
+m.RR.motblock.YA.b3 <-glmer(formula = subRewarded ~ liqCode + moneyCode + (1+moneyCode+liqCode|subID),
+          data = subset(incentive,group=="YA" & block==3), family="binomial")
+summary(m.RR.motblock.YA.b3)
+# # Block Effects between 1 & 2
+# m.RR.motblock.YA.b12 <-glmer(formula = subRewarded ~ moneyCode * blockCode + (1+moneyCode|subID),
+#           data = subset(incentive,group=="YA" & block!=3), family="binomial")
+# summary(m.RR.motblock.YA.b12)
+# # Block Effects between 2 & 3
+# m.RR.motblock.YA.b23 <-glmer(formula = subRewarded ~ moneyCode * blockCode + (1+moneyCode|subID),
+#           data = subset(incentive,group=="YA" & block!=1), family="binomial")
+# summary(m.RR.motblock.YA.b23)
+
+# OA block 3 vs YA block 1
+# Money & Liquid Effects in Block 1
+t.test(x = subset(liq.means, group=="OA" & block==3)$meanRR,
+       y = subset(liq.means, group=="YA" & block==1)$meanRR,
+       paired=FALSE)
+```
+
+\newline
+# Reinforcement Effects Model: Trialwise Estimated Values  
+```{r trialwise-estimate-values}
+# Define constant parameters  
+L = 0.5
+val_init = 0.5
+
+# Loop over subjects and add estimated value based on previously rewarded trial
+SUBJECTS = unique(incentive$subID)
+#SUBJECTS = 1
+incentive$value_est=999
+for (subj.id in SUBJECTS) {
+  # filter data for subject
+  tmp.data<-filter(incentive,subID==subj.id)
+  
+  # remove values_subj vector 
+  if (exists("values_subj")) {rm(values_subj)}
+  if (exists("values_subj_param")) {rm(values_subj_param)}
+  
+  # loop over blocks (1,2,3)
+  BLOCKS=as.numeric(unique(tmp.data$block))
+  for (b in BLOCKS) {
+    # filter data for block
+    tmp.data.block<-filter(tmp.data,block==b)
+    # loop over trials within each block
+    values = vector(mode = "numeric", length=96)
+    values_param = vector(mode = "numeric", length=96)
+    for (t in tmp.data.block$Trial) {
+      # calculate estimated value per trial based on reinforcement/previous reward
+      # non-parametric version: based only previous reward only
+      # parametric version: based on previous reward & monetary value
+      if (t==1) {
+        values[t]=val_init
+        values_param[t]=val_init
+      } else {
+        # nonparametric
+        values[t]=((1-L)*values[t-1]) + L*as.numeric(tmp.data.block$subRewarded[t-1])
+        # parametric
+        w = tmp.data.block$moneyweight[t-1]
+        values_param[t]=((1-L)*values_param[t-1]) + L*as.numeric(w*tmp.data.block$subRewarded[t-1])
+      } 
+      
+    } # end for loop over trials
+    
+    # concatenate the values from blocks for each subject
+    if (exists("values_subj")) {values_subj<-c(values_subj,values)
+    } else {values_subj<-values}
+    
+    # concatenate the values from blocks for each subject: parametric
+    if (exists("values_subj_param")) {values_subj_param<-c(values_subj_param,values_param)
+    } else {values_subj_param<-values_param}
+    
+  } # end for loop over blocks
+
+  # identify indices for where in data frame to enter value estimates
+  ix<-which(incentive$subID==subj.id)
+  # add value estimates to the data frame
+  incentive[ix,"value_est"]=round(values_subj,4)
+  incentive[ix,"value_est_param"]=round(values_subj_param,4)
+  
+} # end for loop over subjects 
+
+```
+
+# Plotting Group Averaged Value Estimates 
+```{r, fig.width=8, fig.height=11}
+data.group.value.estimates <- incentive %>% group_by(Trial,group,liquid,block) %>%
+  summarise(n=n(),value_est_mean = mean(value_est), value_est_param_mean = mean(value_est_param)) %>%
+  arrange(block,liquid,group,Trial)
+levels(data.group.value.estimates$block)[levels(data.group.value.estimates$block)=="1"] <- "Block 1"
+levels(data.group.value.estimates$block)[levels(data.group.value.estimates$block)=="2"] <- "Block 2"
+levels(data.group.value.estimates$block)[levels(data.group.value.estimates$block)=="3"] <- "Block 3"
+names(data.group.value.estimates)[3]<-"Liquid"
+
+# Plotting group value estimates
+p.val.1<-ggplot(data = data.group.value.estimates,
+                mapping=aes(x=Trial,y=value_est_mean, color=Liquid, shape=Liquid)) +
+  geom_point(alpha=0.75) + 
+  geom_smooth(method="lm", se=FALSE) +
+  coord_cartesian(ylim=c(0,1), xlim=c(1,96)) + 
+  facet_grid(group~block) + 
+  #ggtitle(paste("Non-Parametric Group Value Estimates")) + 
+  xlab("Trial Number") + ylab("Value Estimate") + 
+  #labs(shape = "Liquid") +
+  scale_color_brewer(palette="Set1") +
+  #scale_fill_brewer(palette = "Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=12),
+        #legend.position="none",
+        strip.text.x = element_text(size = 12),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(.75, "lines"))
+p.val.1
+
+p.val.2<-ggplot(data = data.group.value.estimates,
+                mapping=aes(x=Trial,y=value_est_param_mean, color=Liquid, shape=Liquid)) +
+  geom_point(alpha=0.75) + 
+  geom_smooth(method="lm", se=FALSE) +
+  coord_cartesian(ylim=c(0,1), xlim=c(1,96)) + 
+  facet_grid(group~block) + 
+  #ggtitle(paste("Non-Parametric Group Value Estimates")) + 
+  xlab("Trial Number") + ylab("Value Estimate") + 
+  #labs(shape = "Liquid") +
+  scale_color_brewer(palette="Set1") +
+  #scale_fill_brewer(palette = "Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=12),
+        #legend.position="none",
+        strip.text.x = element_text(size = 12),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(.75, "lines"))
+p.val.2
+#grid.arrange(p.val.1,p.val.2,ncol=1)
+```
+
+\newpage 
+# Generalized Linear Mixed Model
+Logistic regression of Estimated Reward Value and Experimental Conditions (money, liquid, blocks), as well as group (older adults vs younger adults).
+```{r}
+# Reward Rate predicted by estimated value (reinforcement)
+m.val.1 <-glmer(formula = subRewarded ~ value_est + (1|subID),
+          data = incentive, family=binomial)
+summary(m.val.1)
+
+# money, liquid, age group effects, including estimated value 
+m.val.2 <-glmer(formula = subRewarded ~ moneyCode*liqCode + value_est*blockCode*groupCode +
+                  value_est:liqCode +
+                  (1+moneyCode+liqCode|subID),
+          data = incentive, family=binomial)
+summary(m.val.2)
+
+# younger adults value estimate
+m.val.2a <-glmer(formula = subRewarded ~ liqCode*moneyCode + blockCode*value_est +
+                   value_est:liqCode + (1+moneyCode+liqCode|subID),
+          data = filter(incentive,group=="YA" & liquid!="neutral"), family=binomial)
+summary(m.val.2a)
+
+# older adults value estimate
+m.val.2b <-glmer(formula = subRewarded ~ liqCode*moneyCode + blockCode*value_est + 
+                   value_est:liqCode + (1+moneyCode+liqCode|subID),
+          data = filter(incentive,group=="OA"), family=binomial)
+summary(m.val.2b)
+```
+
+\newpage
+# Switch Costs Analysis
+```{r}
+incentive.switch<- incentive %>% filter(Trial!=1)
+```
+
+
+\newpage
+# Self-Report Ratings and Individual Differences
+## Formatting Data
+```{r}
+data.selfreport<-read.csv(data.path.selfreport) %>%
+  filter(include=="yes")
+```
+
+## Plot of Self-Report Liking Ratings per Liquid
+```{r}
+# formatting the liking data from wide to long form
+data.liking<-data.selfreport %>% 
+  select(subID, group, Juice=juice_like, Neutral=neut_like, Saltwater=salt_like) %>%
+  gather(key = liquid, value = rating, Juice:Saltwater, factor_key=TRUE) %>%
+  mutate(liqCode = factor(liquid, levels = c("Saltwater","Neutral","Juice"), labels=c(-1,0,1)),
+         groupCode = factor(group, levels=c("YA","OA"), labels=c(0,1)))
+data.liking$liqCode<-as.numeric(levels(data.liking$liqCode)[data.liking$liqCode])
+data.liking$groupCode<-as.numeric(levels(data.liking$groupCode)[data.liking$groupCode])  
+
+selfreport.sum<-summarySEwithin2(data = data.liking, measurevar = "rating",
+                                 withinvars = c("liquid"), betweenvars = "group",
+                                 idvar = "subID")
+p.rating.1<-ggplot(data = selfreport.sum, aes(x = liquid, y = rating, fill=group)) +
+  geom_bar(stat = "identity", color="black") +
+  geom_errorbar(mapping = aes(ymin=rating-se, ymax=rating+se), width=.2) +
+  xlab("Liquid") + ylab("Liking Rating") +
+  scale_x_discrete(labels=c("juice_like" = "Juice", 
+                            "neut_like" = "Neutral",
+                            "salt_like" = "Saltwater")) +
+  facet_grid(.~group) + 
+  scale_fill_brewer(palette = "Set2") +
+  #coord_cartesian(ylim=c(1,7)) +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position="none",
+    strip.text.x = element_text(size = 12))
+p.rating.1
+```
+
+\newpage
+## Stats on Liking Ratings
+```{r}
+m.selfreport.1<-lmer(formula = rating ~ liqCode*groupCode + (1|subID), data = data.liking)
+summary(m.selfreport.1)
+# OA
+m.selfreport.1.OA<-lmer(formula = rating ~ liqCode + (1|subID), 
+                        data = subset(data.liking, group=="OA"))
+summary(m.selfreport.1.OA)
+# OA JvN
+t.test(x = subset(data.liking, liquid=="Juice" & group=="OA")$rating,
+       y = subset(data.liking, liquid=="Neutral" & group=="OA")$rating,
+       paired = TRUE)
+
+# OA NvS
+t.test(x = subset(data.liking, liquid=="Neutral" & group=="OA")$rating,
+       y = subset(data.liking, liquid=="Saltwater" & group=="OA")$rating,
+       paired = TRUE)
+
+# YA
+m.selfreport.1.YA<-lmer(formula = rating ~ liqCode + (1|subID), 
+                        data = subset(data.liking, group=="YA"))
+summary(m.selfreport.1.YA)
+# YA JvN
+t.test(x = subset(data.liking, liquid=="Juice" & group=="YA")$rating,
+       y = subset(data.liking, liquid=="Neutral" & group=="YA")$rating,
+       paired = TRUE)
+# YA NvS
+t.test(x = subset(data.liking, liquid=="Neutral" & group=="YA")$rating,
+       y = subset(data.liking, liquid=="Saltwater" & group=="YA")$rating,
+       paired = TRUE)
+
+# OA vs YA
+# Juice
+t.test(x = subset(data.liking, liquid=="Juice" & group=="OA")$rating,
+       y = subset(data.liking, liquid=="Juice" & group=="YA")$rating)
 # Neutral
-m.RR.money.YA.neut <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive, liqCode==0 & group=="YA"), family = binomial)
-summary(m.RR.money.YA.neut)
+t.test(x = subset(data.liking, liquid=="Neutral" & group=="OA")$rating,
+       y = subset(data.liking, liquid=="Neutral" & group=="YA")$rating)
 # Saltwater
-m.RR.money.YA.salt <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive, liqCode==-1 & group=="YA"), family = binomial)
-summary(m.RR.money.YA.salt)
-
-# OA
-m.RR.liquid.OA <-glmer(formula = subRewarded ~ moneyCode * liqCode + (1+moneyCode|subID),
-          data = subset(incentive,groupCode==1), family = binomial)
-summary(m.RR.liquid.OA)
-# Juice 
-m.RR.liquid.OA.juice <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive, liqCode==1 & group=="OA"), family = binomial)
-summary(m.RR.liquid.OA.juice)
-# Neutral
-m.RR.money.OA.neut <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive, liqCode==0 & group=="OA"), family = binomial)
-summary(m.RR.money.OA.neut)
-# Saltwater
-m.RR.money.OA.salt <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive, liqCode==-1 & group=="OA"), family = binomial)
-summary(m.RR.money.OA.salt)
-
+t.test(x = subset(data.liking, liquid=="Saltwater" & group=="OA")$rating,
+       y = subset(data.liking, liquid=="Saltwater" & group=="YA")$rating)
 ```
 
-
-## Reward Rate by Block and Age Group
+## Plot of Self-Report Intensity Ratings per Liquid
 ```{r}
-# Monetary Reward and Block Effect
-m.RR.block <-glmer(formula = subRewarded ~ moneyCode * blockCode * groupCode + (1+moneyCode|subID),
-          data = incentive, family = binomial)
-summary(m.RR.block)
+# formatting the intensity data from wide to long form
+data.intensity<-data.selfreport %>% 
+  select(subID, group, Juice=juice_intense, Neutral=neut_intense, Saltwater=salt_intense) %>%
+  gather(key = liquid, value = rating, Juice:Saltwater, factor_key=TRUE) %>%
+  mutate(liqCode = factor(liquid, levels = c("Saltwater","Neutral","Juice"), labels=c(-1,0,1)),
+         groupCode = factor(group, levels=c("YA","OA"), labels=c(0,1)))
+data.intensity$liqCode<-as.numeric(levels(data.intensity$liqCode)[data.intensity$liqCode])
+data.intensity$groupCode<-as.numeric(levels(data.intensity$groupCode)[data.intensity$groupCode])  
+
+
+selfreport.sum<-summarySEwithin2(data = data.intensity, measurevar = "rating",
+                                 withinvars = c("liquid"), betweenvars = "group",
+                                 idvar = "subID")
+p.rating.2<-ggplot(data = selfreport.sum, aes(x = liquid, y = rating, fill=group)) +
+  geom_bar(stat = "identity", color="black") +
+  geom_errorbar(mapping = aes(ymin=rating-se, ymax=rating+se), width=.2) +
+  xlab("Liquid") + ylab("Intensity Rating") +
+  scale_x_discrete(labels=c("juice_intense" = "Juice", 
+                            "neut_intense" = "Neutral",
+                            "salt_intense" = "Saltwater")) +
+  facet_grid(.~group) + 
+  scale_fill_brewer(palette = "Set2") +
+  #coord_cartesian(ylim=c(1,7)) +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position="none",
+    strip.text.x = element_text(size = 12))
+p.rating.2
+```
+
+\newpage
+## Stats on Intensity Ratings
+```{r}
+m.selfreport.2<-lmer(formula = rating ~ liqCode*groupCode + (1|subID), 
+                     data = data.intensity)
+summary(m.selfreport.2)
+# OA
+m.selfreport.2.OA<-lmer(formula = rating ~ liqCode + (1|subID), 
+                        data = subset(data.intensity, group=="OA"))
+summary(m.selfreport.2.OA)
+# OA JvN
+t.test(x = subset(data.intensity, liquid=="Juice" & group=="OA")$rating,
+       y = subset(data.intensity, liquid=="Neutral" & group=="OA")$rating,
+       paired = TRUE)
+
+# OA NvS
+t.test(x = subset(data.intensity, liquid=="Saltwater" & group=="OA")$rating,
+       y = subset(data.intensity, liquid=="Neutral" & group=="OA")$rating,
+       paired = TRUE)
 
 # YA
-m.RR.block.YA <-glmer(formula = subRewarded ~ moneyCode * blockCode + (1+moneyCode|subID),
-          data = subset(incentive,groupCode==0), family = binomial)
-summary(m.RR.block.YA)
-#block1
-m.RR.block1.YA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,blockCode==-1 & group=="YA"), family = binomial)
-summary(m.RR.block1.YA)
-#block2
-m.RR.block2.YA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,blockCode==0 & group=="YA"), family = binomial)
-summary(m.RR.block2.YA)
-#block3
-m.RR.block3.YA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,blockCode==1 & group=="YA"), family = binomial)
-summary(m.RR.block3.YA)
+m.selfreport.2.YA<-lmer(formula = rating ~ liqCode + (1|subID), 
+                        data = subset(data.intensity, group=="YA"))
+summary(m.selfreport.2.YA)
+# YA JvN
+t.test(x = subset(data.intensity, liquid=="Juice" & group=="YA")$rating,
+       y = subset(data.intensity, liquid=="Neutral" & group=="YA")$rating,
+       paired = TRUE)
+# YA NvS
+t.test(x = subset(data.intensity, liquid=="Saltwater" & group=="YA")$rating,
+       y = subset(data.intensity, liquid=="Neutral" & group=="YA")$rating,
+       paired = TRUE)
 
+# OA vs YA
+# Juice
+t.test(x = subset(data.intensity, liquid=="Juice" & group=="OA")$rating,
+       y = subset(data.intensity, liquid=="Juice" & group=="YA")$rating)
+# Neutral
+t.test(x = subset(data.intensity, liquid=="Neutral" & group=="OA")$rating,
+       y = subset(data.intensity, liquid=="Neutral" & group=="YA")$rating)
+# Saltwater
+t.test(x = subset(data.intensity, liquid=="Saltwater" & group=="OA")$rating,
+       y = subset(data.intensity, liquid=="Saltwater" & group=="YA")$rating)
+```
+
+\newpage
+##  Plot of Self-Report Motivation Ratings per Trial Type
+```{r}
+# 9 motivation ratings
+data.motive9<-data.selfreport %>% 
+  select(subID, group, 
+         Juice_1=juice1_motivation, Juice_2=juice2_motivation, Juice_4=juice4_motivation,
+         Neutral_1=neut1_motivation, Neutral_2=neut2_motivation, Neutral_4=neut4_motivation,
+         Saltwater_1=salt1_motivation, Saltwater_2=salt2_motivation, Saltwater_4=salt4_motivation) %>%
+  gather(key = condition, value = rating, Juice_1:Saltwater_4, factor_key = TRUE) %>%
+  separate(col = condition, into=c("liquid","moneyreward"), sep = "_") %>%
+  mutate(liqCode = factor(liquid, levels = c("Saltwater","Neutral","Juice"), labels=c(-1,0,1)),
+         rewCode = factor(moneyreward, levels = c(1,2,4), labels=c(-1,0,1)),
+         groupCode = factor(group, levels=c("YA","OA"), labels=c(0,1)),
+         money=factor(moneyreward, levels=c(1,2,4), labels=c("$","$$","$$$$")))  
+data.motive9$liqCode<-as.numeric(levels(data.motive9$liqCode)[data.motive9$liqCode])
+data.motive9$rewCode<-as.numeric(levels(data.motive9$rewCode)[data.motive9$rewCode])
+data.motive9$groupCode<-as.numeric(levels(data.motive9$groupCode)[data.motive9$groupCode])  
+data.motive9$subID<-as.factor(data.motive9$subID)
+
+selfreport.sum<-summarySEwithin2(data = data.motive9, measurevar = "rating",
+                                 withinvars = c("liquid","money"), betweenvars = "group",
+                                 idvar = "subID")
+p.rating.3<-ggplot(data = selfreport.sum, aes(x = liquid, y = rating, fill = money)) +
+  geom_bar(position=position_dodge(), stat = "identity", color="black") +
+  geom_errorbar(position=position_dodge(.9),
+                mapping = aes(ymin=rating-se, ymax=rating+se), width=.2) +
+  xlab("Liquid") + ylab("Motivation Rating") +
+  scale_x_discrete(labels=c("juice_intense" = "Juice", 
+                            "neut_intense" = "Neutral",
+                            "salt_intense" = "Saltwater")) +
+  facet_grid(.~group) + 
+  scale_fill_brewer(palette = "Set1") +
+  #coord_cartesian(ylim=c(1,7)) +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position="right",
+    strip.text.x = element_text(size = 12))
+p.rating.3
+```
+
+
+\newpage
+## Stats on Motivation Ratings by Trial Type
+```{r}
+m.selfreport.3<-lmer(formula = rating ~ liqCode*rewCode*groupCode + (1|subID), 
+                     data = data.motive9)
+summary(m.selfreport.3)
 # OA
-m.RR.block.OA <-glmer(formula = subRewarded ~ moneyCode * blockCode + (1+moneyCode|subID),
-          data = subset(incentive,groupCode==1), family = binomial)
-summary(m.RR.block.OA)
-#block1
-m.RR.block1.OA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,blockCode==-1 & group=="OA"), family = binomial)
-summary(m.RR.block1.OA)
-#block2
-m.RR.block2.OA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,blockCode==0 & group=="OA"), family = binomial)
-summary(m.RR.block2.OA)
-#block3
-m.RR.block3.OA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,blockCode==1 & group=="OA"), family = binomial)
-summary(m.RR.block3.OA)
+m.selfreport.3.OA<-lmer(formula = rating ~ liqCode*rewCode + (1|subID), 
+                        data = subset(data.motive9, group=="OA"))
+summary(m.selfreport.3.OA)
+# OA JvN
+m.selfreport.3.OA.JvN<-lmer(formula = rating ~ liqCode*rewCode + (1|subID),
+                        data = subset(data.motive9, group=="OA" & liquid!="Saltwater"))
+summary(m.selfreport.3.OA.JvN)
+# OA NvS
+m.selfreport.3.OA.NvS<-lmer(formula = rating ~ liqCode*rewCode + (1|subID),
+                        data = subset(data.motive9, group=="OA" & liquid!="Juice"))
+summary(m.selfreport.3.OA.NvS)
+
+# YA
+m.selfreport.3.YA<-lmer(formula = rating ~ liqCode*rewCode + (1|subID), 
+                        data = subset(data.motive9, group=="YA"))
+summary(m.selfreport.3.YA)
+# YA JvN
+m.selfreport.3.YA.JvN<-lmer(formula = rating ~ liqCode*rewCode + (1|subID),
+                        data = subset(data.motive9, group=="YA" & liquid!="Saltwater"))
+summary(m.selfreport.3.YA.JvN)
+# YA NvS
+m.selfreport.3.YA.NvS<-lmer(formula = rating ~ liqCode*rewCode + (1|subID),
+                        data = subset(data.motive9, group=="YA" & liquid!="Juice"))
+summary(m.selfreport.3.YA.NvS)
+
+
+# OA vs YA
+# Juice
+m.selfreport.3.OAYA.Juice<-lmer(formula = rating ~ groupCode*rewCode + (1|subID), 
+                        data = subset(data.motive9, liquid=="Juice"))
+summary(m.selfreport.3.OAYA.Juice)
+# Neutral
+m.selfreport.3.OAYA.Neutral<-lmer(formula = rating ~ groupCode*rewCode + (1|subID), 
+                        data = subset(data.motive9, liquid=="Neutral"))
+summary(m.selfreport.3.OAYA.Neutral)
+# Saltwater
+m.selfreport.3.OAYA.Saltwater<-lmer(formula = rating ~ groupCode*rewCode + (1|subID), 
+                        data = subset(data.motive9, liquid=="Saltwater"))
+summary(m.selfreport.3.OAYA.Saltwater)
 ```
 
-# RT by liquid and age group
+
+\newpage
+## Comparing Motivation Ratings and Reward Rate
 ```{r}
-RT.sum=summarySEwithin2(data=liqRT.means, measurevar = "meanRT", withinvars = c("liquid"),
-                        betweenvars = c("group"), idvar = "subID")
-pandoc.table(RT.sum)
-p.RT.2<-ggplot(RT.sum, aes(x=liquid, y=meanRT)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", 
-           fill='darkmagenta', stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanRT-se, ymax=meanRT+se), width=.2) +
-  facet_grid(.~group) +
-  xlab("Liquid") + ylab("Response Time (ms)") +
-  #ggtitle("Task Performance Across Money") +
-  coord_cartesian(ylim=c(400,850)) +
-  scale_fill_discrete(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        axis.text=element_text(size=14),
-        legend.position="none",
-        strip.text.x = element_text(size = 12))
-p.RT.2
+incentive9.means.indiv <- incentive9.means %>%
+  mutate(liquid = factor(liquid, levels = c("saltwater","neutral","juice"), 
+                         labels=c("Saltwater","Neutral","Juice"))) %>%
+  inner_join(y = data.motive9, by = c("subID","liquid","money","group")) %>%
+  group_by(subID) %>%
+  mutate(rating_zscore = scale(rating),
+         meanRR_zscore = scale(meanRR))
+
+p.rating.4<-ggplot(data = incentive9.means.indiv, 
+                   aes(x = rating_zscore, y = meanRR_zscore, color=liquid, shape=liquid)) + 
+  geom_point() +
+  geom_smooth(method="lm", se = FALSE) +
+  xlab("Motivation Rating") + ylab("Reward Rate") + 
+  labs(shape = "Liquid", color="Liquid") +
+  scale_color_brewer(palette="Set1") +
+  facet_grid(group~money) + 
+    theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position="right",
+    strip.text.x = element_text(size = 12),
+    strip.text.y = element_text(size = 12))
+p.rating.4
 ```
 
-# RT by block and age group
 ```{r}
-RT.sum=summarySEwithin2(data=rewRT.means, measurevar = "meanRT", withinvars = c("block"),
-                        betweenvars = c("group"), idvar = "subID")
-pandoc.table(RT.sum)
-p.RT.3<-ggplot(RT.sum, aes(x=block, y=meanRT)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", 
-           fill='gray40', stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanRT-se, ymax=meanRT+se), width=.2) +
-  facet_grid(.~group) +
-  xlab("Block") + ylab("Response Time (ms)") +
-  #ggtitle("Task Performance Across Money") +
-  coord_cartesian(ylim=c(400,900)) +
-  scale_fill_discrete(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        axis.text=element_text(size=14),
-        legend.position="none",
-        strip.text.x = element_text(size = 12))
-p.RT.3
+incentive9.means.indiv2<-filter(incentive9.means.indiv, is.na(rating)!=TRUE)
+# OA Hierarchical Regression 
+# Model 1
+m.selfreport.4.OA.L1<-lmer(formula = meanRR ~ rewCode*liqCode + (1+rewCode|subID), 
+                     data = subset(incentive9.means.indiv2, group=="OA"))
+summary(m.selfreport.4.OA.L1)
+# Model 2
+m.selfreport.4.OA.L2<-lmer(formula = meanRR ~ rewCode*liqCode + rating + (1+rewCode|subID), 
+                     data = subset(incentive9.means.indiv2, group=="OA"))
+summary(m.selfreport.4.OA.L2)
+# Model Comparison
+anova(m.selfreport.4.OA.L1,m.selfreport.4.OA.L2)
+
+# YA Hierarchical Regression
+# Model 1
+m.selfreport.4.YA.L1<-lmer(formula = meanRR ~ rewCode*liqCode + (1+rewCode|subID), 
+                     data = subset(incentive9.means.indiv2, group=="YA"))
+summary(m.selfreport.4.YA.L1)
+# Model 2
+m.selfreport.4.YA.L2<-lmer(formula = meanRR ~ rewCode*liqCode + rating + (1+rewCode|subID), 
+                     data = subset(incentive9.means.indiv2, group=="YA"))
+summary(m.selfreport.4.YA.L2)
+# Model Comparison
+anova(m.selfreport.4.YA.L1, m.selfreport.4.YA.L2)
 ```
 
-# RT by money, block and age group
-```{r}
-RT.sum=summarySEwithin2(data=rewRT.means, measurevar = "meanRT", withinvars = c("money","block"),
-                        betweenvars = c("group"), idvar = "subID")
-pandoc.table(RT.sum)
-p.RT.4<-ggplot(RT.sum, aes(x=block, y=meanRT, fill=money)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", 
-           stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanRT-se, ymax=meanRT+se), width=.2) +
-  facet_grid(.~group) +
-  xlab("Block") + ylab("Response Time (ms)") +
-  #ggtitle("Task Performance Across Money") +
-  coord_cartesian(ylim=c(400,900)) +
-  scale_fill_discrete(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        axis.text=element_text(size=14),
-        legend.position="right",
-        strip.text.x = element_text(size = 12))
-p.RT.4
-```
-
-## Accuracy
-# Accuracy by block and age group
-```{r}
-ACC.sum=summarySEwithin2(data=rew.means, measurevar = "meanACC", withinvars = c("block"),
-                        betweenvars = c("group"), idvar = "subID")
-pandoc.table(ACC.sum)
-p.ACC.1<-ggplot(ACC.sum, aes(x=block, y=meanACC)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", 
-           fill='gray40', stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanACC-se, ymax=meanACC+se), width=.2) +
-  facet_grid(.~group) +
-  xlab("Block") + ylab("Accuracy") +
-  #ggtitle("Task Performance Across Money") +
-  coord_cartesian(ylim=c(0.7,1)) +
-  scale_fill_discrete(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        axis.text=element_text(size=14),
-        legend.position="right",
-        strip.text.x = element_text(size = 12))
-p.ACC.1
-```
-
-# Accuracy by money, block and age group
-```{r}
-ACC.sum=summarySEwithin2(data=rew.means, measurevar = "meanACC", withinvars = c("money","block"),
-                        betweenvars = c("group"), idvar = "subID")
-pandoc.table(ACC.sum)
-p.ACC.2<-ggplot(ACC.sum, aes(x=block, y=meanACC, fill=money)) +
-  geom_bar(position=position_dodge(width=0.8), color="black", 
-           stat="identity", width=0.8) +
-  geom_errorbar(position=position_dodge(width=0.8), 
-                aes(ymin=meanACC-se, ymax=meanACC+se), width=.2) +
-  facet_grid(.~group) +
-  xlab("Block") + ylab("Accuracy") +
-  #ggtitle("Task Performance Across Money") +
-  coord_cartesian(ylim=c(0.7,1)) +
-  scale_fill_discrete(name="Monetary Reward") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-        axis.title=element_text(size=12,face = "bold"),
-        axis.text=element_text(size=14),
-        legend.position="right",
-        strip.text.x = element_text(size = 12))
-p.ACC.2
-```
-
-## Cog Aging 2018 Poster
-```{r}
-# Cog Aging path
-cog.path="/Users/debbieyee/Documents/Conferences/2018/Cognitive Aging/Figures/"
-ggsave(filename = "Study1_RR_money.eps", plot = p.RR.1, device = "eps", 
-       path = cog.path, width = 5.5, height = 5, scale = 1)
-ggsave(filename = "Study1_RR_liquid.eps", plot = p.RR.2, device = "eps", 
-       path = cog.path, width = 5.5, height = 5, scale = 1)
-ggsave(filename = "Study1_RR_moneyliquid.eps", plot = p.RR.3, device = "eps", 
-       path = cog.path, width = 8, height = 5, scale = 1)
-ggsave(filename = "Study1_RR_block.eps", plot = p.RR.5, device = "eps", 
-       path = cog.path, width = 5.5, height = 5, scale = 1)
-ggsave(filename = "Study1_RR_moneyblock.eps", plot = p.RR.6, device = "eps", 
-       path = cog.path, width = 7, height = 5, scale = 1)
-ggsave(filename = "Study1_ACC_moneyblock.eps", plot = p.ACC.2, device = "eps", 
-       path = cog.path, width = 7, height = 4, scale = 1)
-ggsave(filename = "Study1_RT_moneyblock.eps", plot = p.RT.4, device = "eps", 
-       path = cog.path, width = 7, height = 4, scale = 1)
-```
-
-# CABN Manuscript
+# Manuscript Figures
 ```{r}
 ms.path="/Users/debbieyee/Documents/Manuscripts/In Progress/Motivation Aging/Figures/"
-ggsave(filename = "Figure1a_group.eps", plot = p.RR.0, 
+ggsave(filename = "Figure2a_group.eps", plot = p.RR.0, 
        device=cairo_ps, fallback_resolution = 600,
-       path = ms.path, width = 2.5, height = 5, scale = 1)
-ggsave(filename = "Figure1b_money.eps", plot = p.RR.1, device = "eps", 
-       path = ms.path, width = 5.5, height = 5, scale = 1)
+       path = ms.path, width = 3, height = 6, scale = 1)
+# ggsave(filename = "Figure2b_money.eps", plot = p.RR.1, device = "eps", 
+#        path = ms.path, width = 6, height = 5, scale = 1)
+# ggsave(filename = "Figure2c_RTACC.eps", plot = p.RTACC.1, device = "eps", 
+#        path = ms.path, width = 7, height = 4.5, scale = .8)
+ggsave(filename = "Figure2b_RT.eps", plot = p.RT.2, device = "eps", 
+       path = ms.path, width = 6, height = 6, scale = 1)
+ggsave(filename = "Figure2c_ACC.eps", plot = p.ACC.2, device = "eps", 
+       path = ms.path, width = 6, height = 6, scale = 1)
+ggsave(filename = "Figure3_Transition.eps", plot = p.trans.1, 
+       device = cairo_ps,
+       path = ms.path, width = 12, height = 4, scale = 1)
+ggsave(filename = "Figure4a_RR-mon-liq.eps", plot = p.RR.2, 
+       device = "eps",
+       path = ms.path, width = 8, height = 4, scale = 1)
+ggsave(filename = "Figure4b_RR-mon-block.eps", plot = p.RR.3, 
+       device = "eps",
+       path = ms.path, width = 8, height = 4, scale = 1)
+ggsave(filename = "Figure5_ValEst.eps", plot = p.val.1, 
+       device = cairo_ps,
+       path = ms.path, width = 10, height = 6, scale = 1)
+ggsave(filename = "Figure6a_Liking.eps", plot = p.rating.1, 
+       device = "eps",
+       path = ms.path, width = 5.5, height = 5, scale = 1) 
+ggsave(filename = "Figure6b_Intensity.eps", plot = p.rating.2, 
+       device = "eps",
+       path = ms.path, width = 5.5, height = 5, scale = 1) 
+ggsave(filename = "Figure6c_Motivation.eps", plot = p.rating.4, 
+       device = "eps",
+       path = ms.path, width = 12, height = 6, scale = 1) 
 ```
 
