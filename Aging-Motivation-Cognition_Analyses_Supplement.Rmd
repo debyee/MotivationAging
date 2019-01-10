@@ -7,7 +7,7 @@ output:
   html_document: default
 ---
 
-# Age-Related Differences in Motivational Integration and Cognitive Control
+# Age-Related Differences in Motivational Integration and Cognitive Control (Supplement)
 This is an analysis of subject task performance in the aging motivation study, in which we examine age-related differences in how individuals integrate the motivational value of monetary and liquid studies, and whether and how this integrated motivational value interacts with cognitive control. In the study, subjects perform a cued task-switching paradigm, where they have classify a letter (vowel/consonant) or digit (odd/even). During the baseline runs, they don't receive any feedback and are told to respond "as quickly and accurate as possible." During the incentive runs, they receive a drop of liquid (2 mL) to indicate successful attainment of monetary reward in a single trial. Each subject performs 3 incentive runs in which they must respond accurately and faster than a criterion RT to earn monetary reward. Liquid feedback (blocked) served as reinforcement and signaled successful attainment of monetary reward. Criterion RT is calculated on subject performance during the baseline run (30%).
 
 All relevant experimental scripts, subject data, and data analyses located in the online repository in Open Science Framework: https://osf.io/3mztb/
@@ -23,6 +23,7 @@ library(lme4)
 library(lmerTest)
 library(sjPlot)
 library(pander)
+library(effsize)
 source("summarySEwithin2.R")
 library(RColorBrewer)
 ```
@@ -36,21 +37,27 @@ colors.OAYA<-c("#66C2A5","#FC8D62")
 
 # Path directories of data input/output
 ```{r directories}
+# data.path<-paste0("/Users/debbieyee/Box/CCPLab_Liquid_Studies_ARCHIVE/",
+#                   "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
+#                   "TrimmedData/OAYA_LiqPos_RewardData.csv")
+# data.path.base<-paste0("/Users/debbieyee/Box/CCPLab_Liquid_Studies_ARCHIVE/",
+#                   "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
+#                   "TrimmedData/OAYA_LiqPos_BaselineData.csv")
+# data.path.selfreport<-paste0("/Users/debbieyee/Box/CCPLab_Liquid_Studies_ARCHIVE/",
+#                        "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/Redcap/",
+#                        "OAYA_selfreport.csv")
+# runkey.path<-paste0("/Users/debbieyee/Box/CCPLab_Liquid_Studies_ARCHIVE/",
+#                     "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
+#                     "TrimmedData/OAYA_LiqPos_runkey.csv")
+# figure.path<-paste0("/Users/debbieyee/Box/CCPLab_Liquid_Studies_ARCHIVE/",
+#                     "2018_MotivationAging/MotivationAging_Analyses/Figures")
+
 # data directories
-data.path<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
-                  "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
-                  "TrimmedData/OAYA_LiqPos_RewardData.csv")
-data.path.base<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
-                  "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
-                  "TrimmedData/OAYA_LiqPos_BaselineData.csv")
-data.path.selfreport<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
-                       "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/Redcap/",
-                       "OAYA_selfreport.csv")
-runkey.path<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
-                    "2018_MotivationAging/Study1_OA_Reinforcement/SubjectData/",
-                    "TrimmedData/OAYA_LiqPos_runkey.csv")
-figure.path<-paste0("/Users/debbieyee/Box Sync/CCPLab_Liquid_Studies_ARCHIVE/",
-                    "2018_MotivationAging/MotivationAging_Analyses/Figures")
+data.path<-"/Users/debbieyee/Documents/Manuscripts/2018/MotivationAging/Data/OAYA_LiqPos_RewardData.csv"
+data.path.base<-"/Users/debbieyee/Documents/Manuscripts/2018/MotivationAging/Data/OAYA_LiqPos_BaselineData.csv"
+data.path.selfreport<-"/Users/debbieyee/Documents/Manuscripts/2018/MotivationAging/Data/OAYA_selfreport.csv"
+runkey.path<-"/Users/debbieyee/Documents/Manuscripts/2018/MotivationAging/Data/OAYA_LiqPos_runkey.csv"
+figure.path<-"/Users/debbieyee/Documents/Manuscripts/2018/MotivationAging/Figures/"
 ```
 
 # Format data for analysis
@@ -83,6 +90,7 @@ incentive$groupCode<-as.numeric(levels(incentive$groupCode)[incentive$groupCode]
 incentive$blockCode<-as.numeric(levels(incentive$blockCode)[incentive$blockCode])
 ```
 
+# Calculate monetary earnings per group
 ```{r monetary earnings}
 # Calculate average monetary earnings per group
 test<-incentive %>% filter(group=="YA") %>% group_by(subID) %>% 
@@ -221,14 +229,22 @@ cond.RT.sum <- cond.RT %>% group_by(subID,group,condition) %>%
   summarise(meanRT = mean(RT))
 
 # OA baseline vs incentive block
+# run paired t-test
 t.test(x = subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT,
        y = subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT,
        paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT,
+        subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
 t.test(x = subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT,
        y = subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT,
        paired = TRUE)
+cohen.d(subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT,
+        subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 ```
 
 \newpage
@@ -267,14 +283,24 @@ p.SW.1
 ## RT switch costs analysis
 ```{r}
 # OA baseline vs incentive block
+# t-test
 t.test(x = subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
        y = subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
        paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
+        subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
+# t-test
 t.test(x = subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
        y = subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
        paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
+        subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 ```
 
 \newpage
@@ -282,8 +308,8 @@ t.test(x = subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcos
 ```{r}
 # Merge baseline and incentive data
 cond.ACC.base <- data.base %>% mutate(block=0) %>%
-  select(subID, group, Trial, RT, ACC, condition, block)
-cond.ACC.rew <- incentive %>% select(subID, group, Trial, RT, ACC, condition, block)
+  select(subID, group, Trial, RT, ACC, condition, block, taskswitch=taskSwitch)
+cond.ACC.rew <- incentive %>% select(subID, group, Trial, RT, ACC, condition, block,taskswitch)
 cond.ACC<-rbind(cond.ACC.base,cond.ACC.rew) 
 
 ACC.sum=summarySEwithin2(data=cond.ACC, measurevar = "ACC", withinvars = c("condition"),
@@ -320,14 +346,82 @@ cond.ACC.sum <- cond.ACC %>% group_by(subID,group,condition) %>%
   summarise(meanACC = mean(ACC))
 
 # OA baseline vs incentive block
+# t-test
 t.test(x = subset(cond.ACC.sum, group=="OA" & condition=="baseline")$meanACC,
        y = subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
        paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
+        subset(cond.ACC.sum, group=="OA" & condition=="baseline")$meanACC,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
+# t-test
 t.test(x = subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
        y = subset(cond.ACC.sum, group=="YA" & condition=="incentive")$meanACC,
        paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.ACC.sum, group=="YA" & condition=="incentive")$meanACC,
+        subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+
+```
+
+
+\newpage
+## Plot: Accuracy Switch costs between baseline and incentive blocks
+```{r}
+cond.ACC.switch <- cond.ACC %>%
+  group_by(subID,group,condition,taskswitch) %>%
+  filter(Trial!=1) %>%
+  summarise(meanACC = mean(ACC)) %>%
+  spread(key = taskswitch, value = meanACC) %>%
+  rename(taskrepeat="0",taskswitch="1") %>%
+  mutate(switchcost = taskswitch-taskrepeat)
+
+SW.sum=summarySEwithin2(data=cond.ACC.switch, measurevar = "switchcost", 
+                        withinvars = c("condition"), betweenvars = c("group"), 
+                        idvar = "subID")
+pandoc.table(SW.sum)
+p.SW.2<-ggplot(data = SW.sum, aes(x=group, y = switchcost, fill=condition)) +
+  geom_bar(position=position_dodge(width=0.8), color="black",
+           stat="identity", width=0.8) + 
+  geom_errorbar(position=position_dodge(width=0.8),
+                aes(ymin=switchcost-se, ymax=switchcost+se), width=.2) +
+  xlab("Age Group") + ylab("Accuracy switch cost (ms)") +
+  labs(fill = "Block") +
+  #coord_cartesian(ylim=c(500,1000)) +
+  scale_fill_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position=c(.85,.85),
+    legend.box.background = element_rect(colour = "black"),
+    strip.text.x = element_text(size = 12))
+p.SW.2
+```
+
+## Accuracy switch costs analysis
+```{r}
+# OA baseline vs incentive block
+# t-test
+t.test(x = subset(cond.ACC.switch, group=="OA" & condition=="baseline")$switchcost,
+       y = subset(cond.ACC.switch, group=="OA" & condition=="incentive")$switchcost,
+       paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.ACC.switch, group=="OA" & condition=="incentive")$switchcost,
+        subset(cond.ACC.switch, group=="OA" & condition=="baseline")$switchcost,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+
+# YA baseline vs incentive block
+# t-test
+t.test(x = subset(cond.ACC.switch, group=="YA" & condition=="baseline")$switchcost,
+       y = subset(cond.ACC.switch, group=="YA" & condition=="incentive")$switchcost,
+       paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.ACC.switch, group=="YA" & condition=="incentive")$switchcost,
+        subset(cond.ACC.switch, group=="YA" & condition=="baseline")$switchcost,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 ```
 
 \newpage
