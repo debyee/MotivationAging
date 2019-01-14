@@ -188,10 +188,12 @@ binom.test(x = 86, n = 288, p = .05, alternative = "two.sided")
 cond.RT.base <- data.base %>% 
   mutate(block=0) %>%
   select(subID, group, Trial, RT, ACC, condition, block, taskswitch=taskSwitch) %>%
-  filter(ACC==1)
+  filter(ACC==1) %>%
+  mutate(RT_log = log(RT))
 cond.RT.rew <- incentive %>% 
   select(subID, group, Trial, RT, ACC, condition, block, taskswitch) %>%
-  filter(ACC==1)
+  filter(ACC==1) %>%
+  mutate(RT_log = log(RT))
 cond.RT<-rbind(cond.RT.base,cond.RT.rew) 
 
 RT.sum=summarySEwithin2(data=cond.RT, measurevar = "RT", withinvars = c("condition"),
@@ -226,80 +228,24 @@ cond.RT$conditionCode<-as.numeric(levels(cond.RT$conditionCode)[cond.RT$conditio
 
 # summarizing to have one datapoint per subject per condition.
 cond.RT.sum <- cond.RT %>% group_by(subID,group,condition) %>%
-  summarise(meanRT = mean(RT))
+  summarise(meanRT = mean(RT), meanRT_log = mean(RT_log))
 
 # OA baseline vs incentive block
-# run paired t-test
-t.test(x = subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT,
-       y = subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT,
+# run paired t-test 
+t.test(x = subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT_log,
+       y = subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT_log,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT,
-        subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT,
+cohen.d(subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT_log,
+        subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT_log,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
-t.test(x = subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT,
-       y = subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT,
+t.test(x = subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT_log,
+       y = subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT_log,
        paired = TRUE)
-cohen.d(subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT,
-        subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT,
-        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
-```
-
-\newpage
-## Plot: RT Switch costs between baseline and incentive blocks
-```{r}
-cond.RT.switch <- cond.RT %>%
-  group_by(subID,group,condition,taskswitch) %>%
-  filter(Trial!=1, ACC==1) %>%
-  summarise(meanRT = mean(RT)) %>%
-  spread(key = taskswitch, value = meanRT) %>%
-  rename(taskrepeat="0",taskswitch="1") %>%
-  mutate(switchcost = taskswitch-taskrepeat)
-
-SW.sum=summarySEwithin2(data=cond.RT.switch, measurevar = "switchcost", 
-                        withinvars = c("condition"), betweenvars = c("group"), 
-                        idvar = "subID")
-pandoc.table(SW.sum)
-p.SW.1<-ggplot(data = SW.sum, aes(x=group, y = switchcost, fill=condition)) +
-  geom_bar(position=position_dodge(width=0.8), color="black",
-           stat="identity", width=0.8) + 
-  geom_errorbar(position=position_dodge(width=0.8),
-                aes(ymin=switchcost-se, ymax=switchcost+se), width=.2) +
-  xlab("Age Group") + ylab("RT switch cost (ms)") +
-  labs(fill = "Block") +
-  #coord_cartesian(ylim=c(500,1000)) +
-  scale_fill_brewer(palette="Set1") +
-  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
-    axis.title=element_text(size=12,face = "bold"),
-    axis.text=element_text(size=14),
-    legend.position=c(.85,.85),
-    legend.box.background = element_rect(colour = "black"),
-    strip.text.x = element_text(size = 12))
-p.SW.1
-```
-
-## RT switch costs analysis
-```{r}
-# OA baseline vs incentive block
-# t-test
-t.test(x = subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
-       y = subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
-       paired = TRUE)
-# calculate cohen's d
-cohen.d(subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
-        subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
-        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
-
-# YA baseline vs incentive block
-# t-test
-t.test(x = subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
-       y = subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
-       paired = TRUE)
-# calculate cohen's d
-cohen.d(subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
-        subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+cohen.d(subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT_log,
+        subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT_log,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 ```
 
@@ -369,6 +315,63 @@ cohen.d(subset(cond.ACC.sum, group=="YA" & condition=="incentive")$meanACC,
 
 
 \newpage
+## Plot: RT Switch costs between baseline and incentive blocks
+```{r}
+cond.RT.switch <- cond.RT %>%
+  group_by(subID,group,condition,taskswitch) %>%
+  filter(Trial!=1, ACC==1) %>%
+  summarise(meanRT = mean(RT)) %>%
+  spread(key = taskswitch, value = meanRT) %>%
+  rename(taskrepeat="0",taskswitch="1") %>%
+  mutate(switchcost = taskswitch-taskrepeat)
+
+SW.sum=summarySEwithin2(data=cond.RT.switch, measurevar = "switchcost", 
+                        withinvars = c("condition"), betweenvars = c("group"), 
+                        idvar = "subID")
+pandoc.table(SW.sum)
+p.SW.1<-ggplot(data = SW.sum, aes(x=group, y = switchcost, fill=condition)) +
+  geom_bar(position=position_dodge(width=0.8), color="black",
+           stat="identity", width=0.8) + 
+  geom_errorbar(position=position_dodge(width=0.8),
+                aes(ymin=switchcost-se, ymax=switchcost+se), width=.2) +
+  xlab("Age Group") + ylab("RT switch cost (ms)") +
+  labs(fill = "Block") +
+  #coord_cartesian(ylim=c(500,1000)) +
+  scale_fill_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+    axis.title=element_text(size=12,face = "bold"),
+    axis.text=element_text(size=14),
+    legend.position=c(.85,.85),
+    legend.box.background = element_rect(colour = "black"),
+    strip.text.x = element_text(size = 12))
+p.SW.1
+```
+
+## RT switch costs analysis
+```{r}
+# OA baseline vs incentive block
+# t-test
+t.test(x = subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
+       y = subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
+       paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
+        subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+
+# YA baseline vs incentive block
+# t-test
+t.test(x = subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+       y = subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
+       paired = TRUE)
+# calculate cohen's d
+cohen.d(subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
+        subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+```
+
+
+\newpage
 ## Plot: Accuracy Switch costs between baseline and incentive blocks
 ```{r}
 cond.ACC.switch <- cond.ACC %>%
@@ -425,22 +428,87 @@ cohen.d(subset(cond.ACC.switch, group=="YA" & condition=="incentive")$switchcost
 ```
 
 \newpage
-## Generalized Linear Mixed Effects Models: Reward Rate Effects by Monetary Reward and Age
+# First, we create two general functions that calculate effect size.
+# 1) The first function, OR_calc, calculates odds ratio for generalized linear mixed models, based on the beta coefficient estimate (the logit) and the standard error estimate. 
+# 2) the Second function, Cohensf_calc, calculates the 
+```{r oddsratiofunction}
+
+OR_calc <- function(estimate, stderr) {
+  OR_output<-matrix(1,1,3)
+  colnames(OR_output)<-c("odds-ratio","95% CI lower", "95% CI upper")
+  OR_output[1,1] = exp(estimate)
+  OR_output[1,2] = exp(estimate - (1.96*se.group))
+  OR_output[1,3] = exp(estimate + (1.96*se.group))
+  return(OR_output)
+}
+
+# Function to calculate Cohen's f
+Cohensf_calc <- function(model_ab, model_a=NULL) {
+  require(MuMIn)
+  # Proportion of variance accounted for by A and B, relative to model with no regressors and intercepts only
+  Rab_sq = r.squaredGLMM(object = model_ab)
+  
+  if (!is.null(model_a)) {
+    # Proportion of variance accounted for by A, relative to model with no regressors and intercepts only
+    Ra_sq = r.squaredGLMM(object = model_a)
+  } else {
+    Ra_sq = 0
+  }
+
+  # Calculating Cohen's f based on marginal r squared value (Selya 2012)
+  f_sq = (Rab_sq[1] - Ra_sq[1]) / (1-Rab_sq)[1]
+  return(f_sq)
+}
+
+```
+
+## Generalized Linear Mixed Models: Reward Rate Effects by Monetary Reward and Age
 ```{r}
 # Monetary Reward Effect
 m.RR.money<-glmer(formula = subRewarded ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentive, family = binomial)
 summary(m.RR.money)
+m.RR.money.nogroup<-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
+          data = incentive, family = binomial)
+m.RR.money.nomoney<-glmer(formula = subRewarded ~ groupCode + (1+moneyCode|subID),
+          data = incentive, family = binomial)
+# Calculating cohen's f for age factor
+Cohensf_calc(model_ab = m.RR.money, model_a = m.RR.money.nogroup)
+# Calculating cohen's f for monetary reward factor
+Cohensf_calc(model_ab = m.RR.money, model_a = m.RR.money.nomoney)
+
+# # Extracting the coefficients, and calculating the odds ratios
+# coef(summary(m.RR.money))
+# # Calculate odds ratio for group factor
+# coef.group<-coef(summary(m.RR.money))["groupCode","Estimate"]
+# se.group<-coef(summary(m.RR.money))["groupCode","Std. Error"]
+# OR_calc(coef.group, se.group)
+# # Odds ratio for money factor
+# coef.money<-coef(summary(m.RR.money))["moneyCode","Estimate"]
+# se.money<-coef(summary(m.RR.money))["moneyCode","Std. Error"]
+# OR_calc(coef.money, se.money)
 
 # YA
 m.RR.money.YA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,groupCode==0), family = binomial)
 summary(m.RR.money.YA)
+# Calculating cohen's f for younger adults
+Cohensf_calc(model_ab = m.RR.money.YA)
+# # Odds ratio for money factor
+# coef.money<-coef(summary(m.RR.money.YA))["moneyCode","Estimate"]
+# se.money<-coef(summary(m.RR.money.YA))["moneyCode","Std. Error"]
+# OR_calc(coef.money, se.money)
 
 # OA
 m.RR.money.OA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), family = binomial)
 summary(m.RR.money.OA)
+# Calculating cohen's f for older adults
+Cohensf_calc(model_ab = m.RR.money.OA)
+# # Odds ratio for money factor
+# coef.money<-coef(summary(m.RR.money.OA))["moneyCode","Estimate"]
+# se.money<-coef(summary(m.RR.money.OA))["moneyCode","Std. Error"]
+# OR_calc(coef.money, se.money)
 ```
 
 \newpage
@@ -495,7 +563,7 @@ p.RT.1
 ```
 
 \newpage
-## Generalized Linear Mixed Effects Models of RT by Monetary Reward and Age Group
+## General Linear Mixed Effects Models of RT by Monetary Reward and Age Group
 ```{r}
 incentiveRT<- incentive %>% filter(ACC==1) 
 
@@ -503,16 +571,37 @@ incentiveRT<- incentive %>% filter(ACC==1)
 m.RT.money <-lmer(formula = RT ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentiveRT, REML = FALSE)
 summary(m.RT.money)
+m.RT.money.nogroup<-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
+          data = incentiveRT, REML = FALSE)
+m.RT.money.nomoney<-lmer(formula = RT ~ groupCode + (1+moneyCode|subID),
+          data = incentiveRT, REML = FALSE)
+# Calculating cohen's f for age factor
+Cohensf_calc(model_ab = m.RT.money, model_a = m.RT.money.nogroup)
+# Calculating cohen's f for monetary reward factor
+Cohensf_calc(model_ab = m.RT.money, model_a = m.RT.money.nomoney)
+
+#m.RT.money.Rsquared = 1-var(residuals(m.RT.money))/(var(model.response(model.frame(m.RT.money))))
+# anova(m.RT.money)
+# # Calculating eta squared for group effect
+# SS_factor = anova(m.RT.money)["groupCode","Sum Sq"]
+# SS_total = sum(anova(m.RT.money)[,"Sum Sq"])
+# eta_squared = SS_factor/SS_total
+#test<-mixed(formula = RT ~ moneyCode * groupCode + (1+moneyCode|subID), data = incentiveRT, method = "S")
+
 
 # YA
 m.RT.money.YA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentiveRT,group=="YA"))
+          data = subset(incentiveRT,group=="YA"), REML = FALSE)
 summary(m.RT.money.YA)
+# Calculating cohen's f for younger adults
+Cohensf_calc(model_ab = m.RT.money.YA)
 
 # OA
 m.RT.money.OA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
-          data = subset(incentive,group=="OA"))
+          data = subset(incentive,group=="OA"), REML = FALSE)
 summary(m.RT.money.OA)
+# Calculating cohen's f for older adults
+Cohensf_calc(model_ab = m.RT.money.OA)
 ```
 
 \newpage
@@ -547,16 +636,47 @@ p.ACC.1
 m.ACC.money <-glmer(formula = ACC ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentive, family="binomial")
 summary(m.ACC.money)
+m.ACC.money.nogroup<-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
+          data = incentive, family="binomial")
+m.ACC.money.nomoney<-glmer(formula = ACC ~ groupCode + (1+moneyCode|subID),
+          data = incentive, family="binomial")
+# Calculating cohen's f for age factor
+Cohensf_calc(model_ab = m.ACC.money, model_a = m.ACC.money.nogroup)
+# Calculating cohen's f for monetary reward factor
+Cohensf_calc(model_ab = m.ACC.money, model_a = m.ACC.money.nomoney)
+
+# # Calculate odds ratio for group factor
+# coef.group<-coef(summary(m.ACC.money))["groupCode","Estimate"]
+# se.group<-coef(summary(m.ACC.money))["groupCode","Std. Error"]
+# OR_calc(coef.group, se.group)
+# # Odds ratio for money factor
+# coef.money<-coef(summary(m.ACC.money))["moneyCode","Estimate"]
+# se.money<-coef(summary(m.ACC.money))["moneyCode","Std. Error"]
+# OR_calc(coef.money, se.money)
 
 # YA
 m.ACC.money.YA <-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="YA"), family="binomial")
 summary(m.ACC.money.YA)
+# Calculating cohen's f for younger adults
+Cohensf_calc(model_ab = m.ACC.money.YA)
+
+# # Odds ratio for money factor
+# coef.money<-coef(summary(m.ACC.money.YA))["moneyCode","Estimate"]
+# se.money<-coef(summary(m.ACC.money.YA))["moneyCode","Std. Error"]
+# OR_calc(coef.money, se.money)
 
 # OA
 m.ACC.money.OA <-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), family="binomial")
 summary(m.ACC.money.OA)
+# Calculating cohen's f for older adults
+Cohensf_calc(model_ab = m.ACC.money.OA)
+
+# # Odds ratio for money factor
+# coef.money<-coef(summary(m.ACC.money.OA))["moneyCode","Estimate"]
+# se.money<-coef(summary(m.ACC.money.OA))["moneyCode","Std. Error"]
+# OR_calc(coef.money, se.money)
 ```
 
 \newpage
