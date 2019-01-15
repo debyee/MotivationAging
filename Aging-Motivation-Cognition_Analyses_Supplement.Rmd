@@ -793,30 +793,40 @@ m.RR.mot9<-glmer(formula = subRewarded ~ moneyCode * liqCode * groupCode +
                    (1+moneyCode+liqCode|subID),
           data = incentive, family="binomial")
 summary(m.RR.mot9)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.mot9)
 
 # YA
 m.RR.mot9.YA <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                        (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA"), family="binomial")
 summary(m.RR.mot9.YA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.mot9.YA)
 # Juice vs Neutral
 m.RR.mot9.YA.JvN <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" && liquid!="saltwater"), 
           family="binomial")
 summary(m.RR.mot9.YA.JvN)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.mot9.YA.JvN)
 # Saltwater vs Neutral
 m.RR.mot9.YA.SvN <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" & liquid!="juice"), 
           family="binomial")
 summary(m.RR.mot9.YA.SvN)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.mot9.YA.SvN)
 
 # OA
 m.RR.mot9.OA <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                        (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA"), family="binomial")
 summary(m.RR.mot9.OA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.mot9.OA)
 ```
 
 ## Plot: mean reward rate by block, money, and age group
@@ -853,48 +863,53 @@ m.RR.motblock <-glmer(formula = subRewarded ~ liqCode * blockCode * groupCode +
                         moneyCode + (1+moneyCode+liqCode|subID),
           data = incentive, family="binomial")
 summary(m.RR.motblock)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.motblock)
 
 # OA
 m.RR.motblock.OA <-glmer(formula = subRewarded ~ liqCode * blockCode + moneyCode +
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA"), family="binomial")
 summary(m.RR.motblock.OA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.motblock.OA)
+
 # Money & Liquid Effects in Block 1
 m.RR.motblock.OA.b1 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA" & block==1), family="binomial")
 summary(m.RR.motblock.OA.b1)
-# Money & Liquid Effects in Block 2
-m.RR.motblock.OA.b2 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
-                              (1+moneyCode+liqCode|subID),
-          data = subset(incentive,group=="OA" & block==2), family="binomial")
-summary(m.RR.motblock.OA.b2)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.motblock.OA.b1)
 # Money & Effects in Block 3
 m.RR.motblock.OA.b3 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA" & block==3), family="binomial")
 summary(m.RR.motblock.OA.b3)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.motblock.OA.b3)
 
 # YA
 m.RR.motblock.YA <-glmer(formula = subRewarded ~ liqCode * blockCode + moneyCode +
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA"), family="binomial")
 summary(m.RR.motblock.YA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.motblock.YA)
 # block 1
 m.RR.motblock.YA.b1 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" & block==1), family="binomial")
 summary(m.RR.motblock.YA.b1)
-# block 2
-m.RR.motblock.YA.b2 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
-                              (1+moneyCode+liqCode|subID),
-          data = subset(incentive,group=="YA" & block==2), family="binomial")
-summary(m.RR.motblock.YA.b2)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.motblock.YA.b1)
 # block 3
 m.RR.motblock.YA.b3 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" & block==3), family="binomial")
 summary(m.RR.motblock.YA.b3)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.motblock.YA.b3)
 ```
 
 ## Analysis comparing OA performance in block 3 vs YA performance in block 1
@@ -903,6 +918,9 @@ summary(m.RR.motblock.YA.b3)
 t.test(x = subset(liq.means, group=="OA" & block==3)$meanRR,
        y = subset(liq.means, group=="YA" & block==1)$meanRR,
        paired=FALSE)
+cohen.d(subset(liq.means, group=="OA" & block==3)$meanRR,
+        subset(liq.means, group=="YA" & block==1)$meanRR,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 ```
 
 \newpage
