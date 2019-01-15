@@ -22,6 +22,7 @@ library(broom)
 library(lme4)
 library(lmerTest)
 library(sjPlot)
+library(sjstats)
 library(pander)
 library(effsize)
 source("summarySEwithin2.R")
@@ -427,40 +428,6 @@ cohen.d(subset(cond.ACC.switch, group=="YA" & condition=="incentive")$switchcost
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 ```
 
-\newpage
-# First, we create two general functions that calculate effect size.
-# 1) The first function, OR_calc, calculates odds ratio for generalized linear mixed models, based on the beta coefficient estimate (the logit) and the standard error estimate. 
-# 2) the Second function, Cohensf_calc, calculates the 
-```{r oddsratiofunction}
-
-OR_calc <- function(estimate, stderr) {
-  OR_output<-matrix(1,1,3)
-  colnames(OR_output)<-c("odds-ratio","95% CI lower", "95% CI upper")
-  OR_output[1,1] = exp(estimate)
-  OR_output[1,2] = exp(estimate - (1.96*se.group))
-  OR_output[1,3] = exp(estimate + (1.96*se.group))
-  return(OR_output)
-}
-
-# Function to calculate Cohen's f
-Cohensf_calc <- function(model_ab, model_a=NULL) {
-  require(MuMIn)
-  # Proportion of variance accounted for by A and B, relative to model with no regressors and intercepts only
-  Rab_sq = r.squaredGLMM(object = model_ab)
-  
-  if (!is.null(model_a)) {
-    # Proportion of variance accounted for by A, relative to model with no regressors and intercepts only
-    Ra_sq = r.squaredGLMM(object = model_a)
-  } else {
-    Ra_sq = 0
-  }
-
-  # Calculating Cohen's f based on marginal r squared value (Selya 2012)
-  f_sq = (Rab_sq[1] - Ra_sq[1]) / (1-Rab_sq)[1]
-  return(f_sq)
-}
-
-```
 
 ## Generalized Linear Mixed Models: Reward Rate Effects by Monetary Reward and Age
 ```{r}
@@ -468,48 +435,25 @@ Cohensf_calc <- function(model_ab, model_a=NULL) {
 m.RR.money<-glmer(formula = subRewarded ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentive, family = binomial)
 summary(m.RR.money)
-m.RR.money.nogroup<-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
-          data = incentive, family = binomial)
-m.RR.money.nomoney<-glmer(formula = subRewarded ~ groupCode + (1+moneyCode|subID),
-          data = incentive, family = binomial)
-# Calculating cohen's f for age factor
-Cohensf_calc(model_ab = m.RR.money, model_a = m.RR.money.nogroup)
-# Calculating cohen's f for monetary reward factor
-Cohensf_calc(model_ab = m.RR.money, model_a = m.RR.money.nomoney)
-
-# # Extracting the coefficients, and calculating the odds ratios
-# coef(summary(m.RR.money))
-# # Calculate odds ratio for group factor
-# coef.group<-coef(summary(m.RR.money))["groupCode","Estimate"]
-# se.group<-coef(summary(m.RR.money))["groupCode","Std. Error"]
-# OR_calc(coef.group, se.group)
-# # Odds ratio for money factor
-# coef.money<-coef(summary(m.RR.money))["moneyCode","Estimate"]
-# se.money<-coef(summary(m.RR.money))["moneyCode","Std. Error"]
-# OR_calc(coef.money, se.money)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.money)
 
 # YA
 m.RR.money.YA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,groupCode==0), family = binomial)
 summary(m.RR.money.YA)
-# Calculating cohen's f for younger adults
-Cohensf_calc(model_ab = m.RR.money.YA)
-# # Odds ratio for money factor
-# coef.money<-coef(summary(m.RR.money.YA))["moneyCode","Estimate"]
-# se.money<-coef(summary(m.RR.money.YA))["moneyCode","Std. Error"]
-# OR_calc(coef.money, se.money)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.money.YA)
 
 # OA
 m.RR.money.OA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), family = binomial)
 summary(m.RR.money.OA)
-# Calculating cohen's f for older adults
-Cohensf_calc(model_ab = m.RR.money.OA)
-# # Odds ratio for money factor
-# coef.money<-coef(summary(m.RR.money.OA))["moneyCode","Estimate"]
-# se.money<-coef(summary(m.RR.money.OA))["moneyCode","Std. Error"]
-# OR_calc(coef.money, se.money)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RR.money.OA)
+
 ```
+
 
 \newpage
 ## Plot: barplot of reward rate by monetary reward and age group
@@ -571,37 +515,22 @@ incentiveRT<- incentive %>% filter(ACC==1)
 m.RT.money <-lmer(formula = RT ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentiveRT, REML = FALSE)
 summary(m.RT.money)
-m.RT.money.nogroup<-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
-          data = incentiveRT, REML = FALSE)
-m.RT.money.nomoney<-lmer(formula = RT ~ groupCode + (1+moneyCode|subID),
-          data = incentiveRT, REML = FALSE)
-# Calculating cohen's f for age factor
-Cohensf_calc(model_ab = m.RT.money, model_a = m.RT.money.nogroup)
-# Calculating cohen's f for monetary reward factor
-Cohensf_calc(model_ab = m.RT.money, model_a = m.RT.money.nomoney)
-
-#m.RT.money.Rsquared = 1-var(residuals(m.RT.money))/(var(model.response(model.frame(m.RT.money))))
-# anova(m.RT.money)
-# # Calculating eta squared for group effect
-# SS_factor = anova(m.RT.money)["groupCode","Sum Sq"]
-# SS_total = sum(anova(m.RT.money)[,"Sum Sq"])
-# eta_squared = SS_factor/SS_total
-#test<-mixed(formula = RT ~ moneyCode * groupCode + (1+moneyCode|subID), data = incentiveRT, method = "S")
-
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RT.money)
 
 # YA
 m.RT.money.YA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentiveRT,group=="YA"), REML = FALSE)
 summary(m.RT.money.YA)
-# Calculating cohen's f for younger adults
-Cohensf_calc(model_ab = m.RT.money.YA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RT.money.YA)
 
 # OA
 m.RT.money.OA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), REML = FALSE)
 summary(m.RT.money.OA)
-# Calculating cohen's f for older adults
-Cohensf_calc(model_ab = m.RT.money.OA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.RT.money.OA)
 ```
 
 \newpage
@@ -636,47 +565,22 @@ p.ACC.1
 m.ACC.money <-glmer(formula = ACC ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentive, family="binomial")
 summary(m.ACC.money)
-m.ACC.money.nogroup<-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
-          data = incentive, family="binomial")
-m.ACC.money.nomoney<-glmer(formula = ACC ~ groupCode + (1+moneyCode|subID),
-          data = incentive, family="binomial")
-# Calculating cohen's f for age factor
-Cohensf_calc(model_ab = m.ACC.money, model_a = m.ACC.money.nogroup)
-# Calculating cohen's f for monetary reward factor
-Cohensf_calc(model_ab = m.ACC.money, model_a = m.ACC.money.nomoney)
-
-# # Calculate odds ratio for group factor
-# coef.group<-coef(summary(m.ACC.money))["groupCode","Estimate"]
-# se.group<-coef(summary(m.ACC.money))["groupCode","Std. Error"]
-# OR_calc(coef.group, se.group)
-# # Odds ratio for money factor
-# coef.money<-coef(summary(m.ACC.money))["moneyCode","Estimate"]
-# se.money<-coef(summary(m.ACC.money))["moneyCode","Std. Error"]
-# OR_calc(coef.money, se.money)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.ACC.money)
 
 # YA
 m.ACC.money.YA <-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="YA"), family="binomial")
 summary(m.ACC.money.YA)
-# Calculating cohen's f for younger adults
-Cohensf_calc(model_ab = m.ACC.money.YA)
-
-# # Odds ratio for money factor
-# coef.money<-coef(summary(m.ACC.money.YA))["moneyCode","Estimate"]
-# se.money<-coef(summary(m.ACC.money.YA))["moneyCode","Std. Error"]
-# OR_calc(coef.money, se.money)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.ACC.money.YA)
 
 # OA
 m.ACC.money.OA <-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), family="binomial")
 summary(m.ACC.money.OA)
-# Calculating cohen's f for older adults
-Cohensf_calc(model_ab = m.ACC.money.OA)
-
-# # Odds ratio for money factor
-# coef.money<-coef(summary(m.ACC.money.OA))["moneyCode","Estimate"]
-# se.money<-coef(summary(m.ACC.money.OA))["moneyCode","Std. Error"]
-# OR_calc(coef.money, se.money)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.ACC.money.OA)
 ```
 
 \newpage
@@ -755,25 +659,36 @@ Transition between last 20 trials of baseline and first 20 trials of first incen
 m.trans <-lmer(formula = RT_zscore ~ Trial * conditionCode * groupCode + (1|subID),
           data = transition)
 summary(m.trans)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans)
 
 # YA only
 m.trans.YA <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="YA"))
 summary(m.trans.YA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.YA)
 
 # OA only
 m.trans.OA <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="OA"))
 summary(m.trans.OA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.OA)
 
 # OA baseline
-m.trans.OA.base <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
+m.trans.OA.base <-lmer(formula = RT_zscore ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="baseline"))
 summary(m.trans.OA.base)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.OA.base)
+
 # OA incentive
-m.trans.OA.incentive <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
+m.trans.OA.incentive <-lmer(formula = RT_zscore ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="incentive"))
 summary(m.trans.OA.incentive)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.OA.incentive)
 ```
 
 ## Plot: Transition of Accuracy between baseline and incentive block
@@ -810,25 +725,35 @@ Transition between last 20 trials of baseline and first 20 trials of first incen
 m.trans.ACC <-glmer(formula = ACC ~ Trial * conditionCode * groupCode + (1|subID),
           data = transition, family="binomial")
 summary(m.trans.ACC)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.ACC)
 
 # YA only
 m.trans.ACC.YA <-glmer(formula = ACC ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="YA"), family="binomial")
 summary(m.trans.ACC.YA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.ACC.YA)
 
 # OA only
 m.trans.ACC.OA <-glmer(formula = ACC ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="OA"), family="binomial")
 summary(m.trans.ACC.OA)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.ACC.OA)
 
 # OA only baseline
 m.trans.ACC.OA.baseline <-glmer(formula = ACC ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="baseline"), family="binomial")
 summary(m.trans.ACC.OA.baseline)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.ACC.OA.baseline)
 # OA only incentive
 m.trans.ACC.OA.incentive <-glmer(formula = ACC ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="incentive"), family="binomial")
 summary(m.trans.ACC.OA.incentive)
+# Calculating Cohen's f effect sizes for specific variables
+sjstats::cohens_f(m.trans.ACC.OA.incentive)
 ```
 
 \newpage
