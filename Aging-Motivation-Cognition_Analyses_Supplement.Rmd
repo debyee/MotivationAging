@@ -25,6 +25,10 @@ library(sjPlot)
 library(sjstats)
 library(pander)
 library(effsize)
+library(ez)
+library(xtable)
+library(stargazer)
+library(psychReport)
 source("summarySEwithin2.R")
 library(RColorBrewer)
 ```
@@ -237,17 +241,25 @@ t.test(x = subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT_log,
        y = subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT_log,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT_log,
-        subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT_log,
+cohen.d(subset(cond.RT.sum, group=="OA" & condition=="baseline")$meanRT_log,
+        subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT_log,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
 t.test(x = subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT_log,
        y = subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT_log,
        paired = TRUE)
-cohen.d(subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT_log,
-        subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT_log,
+cohen.d(subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT_log,
+        subset(cond.RT.sum, group=="YA" & condition=="incentive")$meanRT_log,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+
+# OA incentive vs YA baseline
+t.test(x = subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT_log,
+       y = subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT_log,
+       paired = FALSE)
+cohen.d(subset(cond.RT.sum, group=="OA" & condition=="incentive")$meanRT_log,
+        subset(cond.RT.sum, group=="YA" & condition=="baseline")$meanRT_log,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 ```
 
 \newpage
@@ -298,8 +310,8 @@ t.test(x = subset(cond.ACC.sum, group=="OA" & condition=="baseline")$meanACC,
        y = subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
-        subset(cond.ACC.sum, group=="OA" & condition=="baseline")$meanACC,
+cohen.d(subset(cond.ACC.sum, group=="OA" & condition=="baseline")$meanACC,
+        subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
@@ -308,10 +320,18 @@ t.test(x = subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
        y = subset(cond.ACC.sum, group=="YA" & condition=="incentive")$meanACC,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.ACC.sum, group=="YA" & condition=="incentive")$meanACC,
-        subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
+cohen.d(subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
+        subset(cond.ACC.sum, group=="YA" & condition=="incentive")$meanACC,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
+# OA incentive vs YA baseline
+t.test(x = subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
+       y = subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
+       paired = FALSE)
+# calculate cohen's d
+cohen.d(subset(cond.ACC.sum, group=="OA" & condition=="incentive")$meanACC,
+        subset(cond.ACC.sum, group=="YA" & condition=="baseline")$meanACC,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 ```
 
 
@@ -356,8 +376,8 @@ t.test(x = subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcos
        y = subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
-        subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
+cohen.d(subset(cond.RT.switch, group=="OA" & condition=="baseline")$switchcost,
+        subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
@@ -366,9 +386,19 @@ t.test(x = subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcos
        y = subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
-        subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+cohen.d(subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+        subset(cond.RT.switch, group=="YA" & condition=="incentive")$switchcost,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+
+# OA incentive vs YA baseline block
+# t-test
+t.test(x = subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
+       y = subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+       paired = FALSE)
+# calculate cohen's d
+cohen.d(subset(cond.RT.switch, group=="OA" & condition=="incentive")$switchcost,
+        subset(cond.RT.switch, group=="YA" & condition=="baseline")$switchcost,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 ```
 
 
@@ -413,8 +443,8 @@ t.test(x = subset(cond.ACC.switch, group=="OA" & condition=="baseline")$switchco
        y = subset(cond.ACC.switch, group=="OA" & condition=="incentive")$switchcost,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.ACC.switch, group=="OA" & condition=="incentive")$switchcost,
-        subset(cond.ACC.switch, group=="OA" & condition=="baseline")$switchcost,
+cohen.d(subset(cond.ACC.switch, group=="OA" & condition=="baseline")$switchcost,
+        subset(cond.ACC.switch, group=="OA" & condition=="incentive")$switchcost,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA baseline vs incentive block
@@ -423,35 +453,84 @@ t.test(x = subset(cond.ACC.switch, group=="YA" & condition=="baseline")$switchco
        y = subset(cond.ACC.switch, group=="YA" & condition=="incentive")$switchcost,
        paired = TRUE)
 # calculate cohen's d
-cohen.d(subset(cond.ACC.switch, group=="YA" & condition=="incentive")$switchcost,
-        subset(cond.ACC.switch, group=="YA" & condition=="baseline")$switchcost,
+cohen.d(subset(cond.ACC.switch, group=="YA" & condition=="baseline")$switchcost,
+        subset(cond.ACC.switch, group=="YA" & condition=="incentive")$switchcost,
         na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 ```
 
-
+\newpage
 ## Generalized Linear Mixed Models: Reward Rate Effects by Monetary Reward and Age
 ```{r}
 # Monetary Reward Effect
 m.RR.money<-glmer(formula = subRewarded ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentive, family = binomial)
 summary(m.RR.money)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.money)
 
 # YA
 m.RR.money.YA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,groupCode==0), family = binomial)
 summary(m.RR.money.YA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.money.YA)
 
 # OA
 m.RR.money.OA <-glmer(formula = subRewarded ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), family = binomial)
 summary(m.RR.money.OA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.money.OA)
+```
 
+## Calculating the effect sizes for Appendix
+```{r, RReffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+stargazer(m.RR.money, title = "Reward rate by monetary reward level and age group", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.money)
+
+# # Calculating generalized eta squared and CI for partial eta squared for repeated measures anova
+# m.RR.money.anova<-ezANOVA(data = rew.means, dv = meanRR, wid = subID, between = group, within = money,
+#                           return_aov = TRUE, detailed = TRUE)
+# 
+# # Wrapper function to include partial eta squared
+# m.RR.money.anovaPE<-aovEffectSize(m.RR.money.anova, effectSize = "pes")
+# m.RR.money.anova$ANOVA$pes<-m.RR.money.anovaPE$ANOVA$pes
+# 
+# # Putting the ANOVA into a table for latex format
+# print(xtable(m.RR.money.anova$ANOVA, type = "latex"))
+
+# YA only
+# Creating latex output
+stargazer(m.RR.money.YA, title = "Reward rate by monetary reward level: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.money.YA)
+
+# # Calculating generalized eta squared and CI for partial eta squared for repeated measures anova
+# m.RR.money.anova<-ezANOVA(data = subset(incentive, group=="YA"), dv = subRewarded, wid = subID, within = money,
+#                           return_aov = TRUE, detailed = TRUE)
+#
+# # Wrapper function to include partial eta squared
+# m.RR.money.anovaPE<-aovEffectSize(m.RR.money.anova, effectSize = "pes")
+# m.RR.money.anova$ANOVA$pes<-m.RR.money.anovaPE$ANOVA$pes
+# 
+# # Putting the ANOVA into a table for latex format
+# print(xtable(m.RR.money.anova$ANOVA, type = "latex"))
+
+# OA only
+# Creating latex output
+stargazer(m.RR.money.OA, title = "Reward rate by monetary reward level: OA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.money.OA)
+
+# # Calculating generalized eta squared and CI for partial eta squared for repeated measures anova
+# m.RR.money.anova<-ezANOVA(data = subset(incentive, group=="OA"), dv = subRewarded, wid = subID, within = money,
+#                           return_aov = TRUE, detailed = TRUE)
+# 
+# # Wrapper function to include partial eta squared
+# m.RR.money.anovaPE<-aovEffectSize(m.RR.money.anova, effectSize = "pes")
+# m.RR.money.anova$ANOVA$pes<-m.RR.money.anovaPE$ANOVA$pes
+# 
+# # Putting the ANOVA into a table for latex format
+# print(xtable(m.RR.money.anova$ANOVA, type = "latex"))
 ```
 
 
@@ -515,22 +594,76 @@ incentiveRT<- incentive %>% filter(ACC==1)
 m.RT.money <-lmer(formula = RT ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentiveRT, REML = FALSE)
 summary(m.RT.money)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RT.money)
 
 # YA
 m.RT.money.YA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentiveRT,group=="YA"), REML = FALSE)
 summary(m.RT.money.YA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RT.money.YA)
 
 # OA
 m.RT.money.OA <-lmer(formula = RT ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), REML = FALSE)
 summary(m.RT.money.OA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RT.money.OA)
+```
+
+## Calculating the effect sizes for Appendix
+```{r RTeffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+class(m.RT.money) <- "lmerMod"
+stargazer(m.RT.money, title = "Response Time by monetary reward level and age group", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RT.money)
+
+# # Calculating generalized eta squared and CI for partial eta squared for repeated measures anova
+# m.RT.money.anova<-ezANOVA(data = rewRT.means, dv = meanRT, wid = subID, between = group, within = money,
+#                           return_aov = TRUE, detailed = TRUE)
+# 
+# # Wrapper function to include partial eta squared
+# m.RT.money.anovaPE<-aovEffectSize(m.RT.money.anova, effectSize = "pes")
+# m.RT.money.anova$ANOVA$pes<-m.RT.money.anovaPE$ANOVA$pes
+# 
+# # Putting the ANOVA into a table for latex format
+# print(xtable(m.RT.money.anova$ANOVA, type = "latex"))
+
+# YA only
+# Creating latex output
+class(m.RT.money.YA) <- "lmerMod"
+stargazer(m.RT.money.YA, title = "Response Time by monetary reward level: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RT.money.YA)
+
+# # Calculating generalized eta squared and CI for partial eta squared for repeated measures anova
+# m.RT.money.anova<-ezANOVA(subset(incentiveRT,group=="YA"), dv = subRewarded, wid = subID, within = rewType,
+#                           return_aov = TRUE, detailed = TRUE)
+# 
+# # Wrapper function to include partial eta squared
+# m.RT.money.anovaPE<-aovEffectSize(m.RT.money.anova, effectSize = "pes")
+# m.RT.money.anova$ANOVA$pes<-m.RT.money.anovaPE$ANOVA$pes
+# 
+# # Putting the ANOVA into a table for latex format
+# print(xtable(m.RT.money.anova$ANOVA, type = "latex"))
+
+# OA only
+# Creating latex output
+class(m.RT.money.OA) <- "lmerMod"
+stargazer(m.RT.money.OA, title = "Response Time by monetary reward level: OA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RT.money.OA)
+
+# # Calculating generalized eta squared and CI for partial eta squared for repeated measures anova
+# m.RT.money.anova<-ezANOVA(subset(rewRT.means,group=="OA"), dv = meanRT, wid = subID, within = money,
+#                           return_aov = TRUE, detailed = TRUE)
+# 
+# # Wrapper function to include partial eta squared
+# m.RT.money.anovaPE<-aovEffectSize(m.RT.money.anova, effectSize = "pes")
+# m.RT.money.anova$ANOVA$pes<-m.RT.money.anovaPE$ANOVA$pes
+# 
+# # Putting the ANOVA into a table for latex format
+# print(xtable(m.RT.money.anova$ANOVA, type = "latex"))
+
 ```
 
 \newpage
@@ -565,22 +698,39 @@ p.ACC.1
 m.ACC.money <-glmer(formula = ACC ~ moneyCode * groupCode + (1+moneyCode|subID),
           data = incentive, family="binomial")
 summary(m.ACC.money)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.ACC.money)
 
 # YA
 m.ACC.money.YA <-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="YA"), family="binomial")
 summary(m.ACC.money.YA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.ACC.money.YA)
 
 # OA
 m.ACC.money.OA <-glmer(formula = ACC ~ moneyCode + (1+moneyCode|subID),
           data = subset(incentive,group=="OA"), family="binomial")
 summary(m.ACC.money.OA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.ACC.money.OA)
+```
+
+## Calculating the effect sizes for Appendix
+```{r ACCeffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+stargazer(m.ACC.money, title = "Accuracy by monetary reward level and age group", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.ACC.money)
+
+# YA only
+# Creating latex output
+stargazer(m.ACC.money.YA, title = "Accuracy by monetary reward level: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.ACC.money.YA)
+
+# OA only
+# Creating latex output
+stargazer(m.ACC.money.OA, title = "Accuracy by monetary reward level: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.ACC.money.OA)
 ```
 
 \newpage
@@ -659,36 +809,66 @@ Transition between last 20 trials of baseline and first 20 trials of first incen
 m.trans <-lmer(formula = RT_zscore ~ Trial * conditionCode * groupCode + (1|subID),
           data = transition)
 summary(m.trans)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans)
 
 # YA only
 m.trans.YA <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="YA"))
 summary(m.trans.YA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.YA)
 
 # OA only
 m.trans.OA <-lmer(formula = RT_zscore ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="OA"))
 summary(m.trans.OA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.OA)
 
 # OA baseline
 m.trans.OA.base <-lmer(formula = RT_zscore ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="baseline"))
 summary(m.trans.OA.base)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.OA.base)
 
 # OA incentive
 m.trans.OA.incentive <-lmer(formula = RT_zscore ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="incentive"))
 summary(m.trans.OA.incentive)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.OA.incentive)
+```
+
+## Calculating the effect sizes for Appendix
+```{r Transeffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+class(m.trans)<-"lmerMod"
+stargazer(m.trans, title = "Transition effects between baseline and incentive blocks", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans)
+
+# YA only
+# Creating latex output
+class(m.trans.YA)<-"lmerMod"
+stargazer(m.trans.YA, title = "Transition effects between baseline and incentive blocks: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.YA)
+
+# OA only
+# Creating latex output
+class(m.trans.OA)<-"lmerMod"
+stargazer(m.trans.OA, title = "Transition effects between baseline and incentive blocks: OA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.OA)
+
+# Creating latex output
+class(m.trans.OA.base)<-"lmerMod"
+stargazer(m.trans.OA.base, title = "Older Adult Zscored RT in baseline block", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.OA.base)
+
+# Creating latex output
+class(m.trans.OA.incentive)<-"lmerMod"
+stargazer(m.trans.OA.incentive, title = "Older Adult Zscored RT in incentive block", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.OA.incentive)
 ```
 
 ## Plot: Transition of Accuracy between baseline and incentive block
@@ -725,35 +905,60 @@ Transition between last 20 trials of baseline and first 20 trials of first incen
 m.trans.ACC <-glmer(formula = ACC ~ Trial * conditionCode * groupCode + (1|subID),
           data = transition, family="binomial")
 summary(m.trans.ACC)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.ACC)
 
 # YA only
 m.trans.ACC.YA <-glmer(formula = ACC ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="YA"), family="binomial")
 summary(m.trans.ACC.YA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.ACC.YA)
 
 # OA only
 m.trans.ACC.OA <-glmer(formula = ACC ~ Trial * conditionCode + (1|subID),
           data = subset(transition, group=="OA"), family="binomial")
 summary(m.trans.ACC.OA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.ACC.OA)
 
 # OA only baseline
 m.trans.ACC.OA.baseline <-glmer(formula = ACC ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="baseline"), family="binomial")
 summary(m.trans.ACC.OA.baseline)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.ACC.OA.baseline)
 # OA only incentive
 m.trans.ACC.OA.incentive <-glmer(formula = ACC ~ Trial + (1|subID),
           data = subset(transition, group=="OA" & condition=="incentive"), family="binomial")
 summary(m.trans.ACC.OA.incentive)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.trans.ACC.OA.incentive)
+```
+
+## Calculating the effect sizes for Appendix
+```{r TransACCeffectsize3, echo=TRUE, results='hide'}
+# Creating latex output
+stargazer(m.trans.ACC, title = "Transition effects between baseline and incentive blocks", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.ACC)
+
+# YA only
+# Creating latex output
+stargazer(m.trans.ACC.YA, title = "Transition effects between baseline and incentive blocks: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.ACC.YA)
+
+# OA only
+# Creating latex output
+stargazer(m.trans.ACC.OA, title = "Transition effects between baseline and incentive blocks: OA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.ACC.OA)
+
+# Creating latex output
+stargazer(m.trans.ACC.OA.baseline, title = "Older Adult Accuracy in baseline block", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.ACC.OA.baseline)
+
+# Creating latex output
+stargazer(m.trans.ACC.OA.incentive, title = "Older Adult Accuracy in incentive block", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.trans.ACC.OA.incentive)
 ```
 
 \newpage
@@ -793,40 +998,64 @@ m.RR.mot9<-glmer(formula = subRewarded ~ moneyCode * liqCode * groupCode +
                    (1+moneyCode+liqCode|subID),
           data = incentive, family="binomial")
 summary(m.RR.mot9)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.mot9)
 
 # YA
 m.RR.mot9.YA <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                        (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA"), family="binomial")
 summary(m.RR.mot9.YA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.mot9.YA)
 # Juice vs Neutral
 m.RR.mot9.YA.JvN <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" && liquid!="saltwater"), 
           family="binomial")
 summary(m.RR.mot9.YA.JvN)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.mot9.YA.JvN)
 # Saltwater vs Neutral
 m.RR.mot9.YA.SvN <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" & liquid!="juice"), 
           family="binomial")
 summary(m.RR.mot9.YA.SvN)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.mot9.YA.SvN)
 
 # OA
 m.RR.mot9.OA <-glmer(formula = subRewarded ~ moneyCode * liqCode + 
                        (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA"), family="binomial")
 summary(m.RR.mot9.OA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.mot9.OA)
+```
+
+## Calculating the effect sizes for Appendix
+```{r Mot9effectsize, echo=TRUE, results='hide'}
+# Creating latex output
+stargazer(m.RR.mot9, title = "Reward Rate by monetary reward, liquid feedback, and age", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.mot9)
+
+# YA only
+# Creating latex output
+stargazer(m.RR.mot9.YA, title = "Reward Rate by monetary reward, liquid feedback: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.mot9.YA)
+# Juice vs Neutral
+# Creating latex output
+stargazer(m.RR.mot9.YA.JvN, title = "Reward Rate by monetary reward, liquid feedback: YA only (Juice vs Neutral)", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.mot9.YA.JvN)
+# Saltwater vs Neutral
+stargazer(m.RR.mot9.YA.SvN, title = "Reward Rate by monetary reward, liquid feedback: YA only (Saltwater vs Neutral)", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.mot9.YA.SvN)
+
+# OA only
+# Creating latex output
+stargazer(m.RR.mot9.OA, title = "Reward Rate by monetary reward, liquid feedback: OA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.mot9.OA)
 ```
 
 ## Plot: mean reward rate by block, money, and age group
@@ -863,54 +1092,84 @@ m.RR.motblock <-glmer(formula = subRewarded ~ liqCode * blockCode * groupCode +
                         moneyCode + (1+moneyCode+liqCode|subID),
           data = incentive, family="binomial")
 summary(m.RR.motblock)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.motblock)
 
 # OA
 m.RR.motblock.OA <-glmer(formula = subRewarded ~ liqCode * blockCode + moneyCode +
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA"), family="binomial")
 summary(m.RR.motblock.OA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.motblock.OA)
 
 # Money & Liquid Effects in Block 1
 m.RR.motblock.OA.b1 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA" & block==1), family="binomial")
 summary(m.RR.motblock.OA.b1)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.motblock.OA.b1)
 # Money & Effects in Block 3
 m.RR.motblock.OA.b3 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="OA" & block==3), family="binomial")
 summary(m.RR.motblock.OA.b3)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.motblock.OA.b3)
 
 # YA
 m.RR.motblock.YA <-glmer(formula = subRewarded ~ liqCode * blockCode + moneyCode +
                            (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA"), family="binomial")
 summary(m.RR.motblock.YA)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.motblock.YA)
 # block 1
 m.RR.motblock.YA.b1 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" & block==1), family="binomial")
 summary(m.RR.motblock.YA.b1)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.motblock.YA.b1)
 # block 3
 m.RR.motblock.YA.b3 <-glmer(formula = subRewarded ~ liqCode + moneyCode + 
                               (1+moneyCode+liqCode|subID),
           data = subset(incentive,group=="YA" & block==3), family="binomial")
 summary(m.RR.motblock.YA.b3)
-# Calculating Cohen's f effect sizes for specific variables
-sjstats::cohens_f(m.RR.motblock.YA.b3)
 ```
+
+## Calculating the effect sizes for Appendix
+```{r MotblockRReffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+stargazer(m.RR.motblock, title = "Reward Rate by monetary reward, liquid, block, and age", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.motblock)
+
+# OA only
+# Creating latex output
+stargazer(m.RR.motblock.OA, title = "Reward Rate by monetary reward, liquid, block: OA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.motblock.OA)
+# block 1
+stargazer(m.RR.motblock.OA.b1, title = "Reward Rate by monetary reward, liquid, block: OA block 1", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.motblock.OA.b1)
+# block 3
+stargazer(m.RR.motblock.OA.b3, title = "Reward Rate by monetary reward, liquid, block: OA block 3", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.motblock.OA.b3)
+
+# YA only
+# Creating latex output
+stargazer(m.RR.motblock.YA, title = "Reward Rate by monetary reward, liquid, block: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.motblock.YA)
+# block 1
+stargazer(m.RR.motblock.YA.b1, title = "Reward Rate by monetary reward, liquid, block: YA block 1", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.motblock.YA.b1)
+# block 3
+stargazer(m.RR.motblock.YA.b3, title = "Reward Rate by monetary reward, liquid, block: YA block 3", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.RR.motblock.YA.b3)
+```
+
 
 ## Analysis comparing OA performance in block 3 vs YA performance in block 1
 ```{r}
@@ -1029,7 +1288,7 @@ m.val.1 <-glmer(formula = subRewarded ~ value_est + (1|subID),
           data = incentive, family=binomial)
 summary(m.val.1)
 
-# money, liquid, age group effects, including estimated value 
+# money, liquid, age group effects, including estimated value
 m.val.2 <-glmer(formula = subRewarded ~ moneyCode*liqCode + value_est*blockCode*groupCode +
                   value_est:liqCode +
                   (1+moneyCode+liqCode|subID),
@@ -1039,7 +1298,7 @@ summary(m.val.2)
 # younger adults value estimate
 m.val.2a <-glmer(formula = subRewarded ~ liqCode*moneyCode + blockCode*value_est +
                    value_est:liqCode + (1+moneyCode+liqCode|subID),
-          data = filter(incentive,group=="YA" & liquid!="neutral"), family=binomial)
+          data = filter(incentive,group=="YA"), family=binomial)
 summary(m.val.2a)
 
 # older adults value estimate
@@ -1047,6 +1306,27 @@ m.val.2b <-glmer(formula = subRewarded ~ liqCode*moneyCode + blockCode*value_est
                    value_est:liqCode + (1+moneyCode+liqCode|subID),
           data = filter(incentive,group=="OA"), family=binomial)
 summary(m.val.2b)
+```
+
+## Calculating the effect sizes for Appendix
+```{r ValEsteffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+stargazer(m.val.1, title = "Reward Rate by value estimate", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.val.1)
+
+# Creating latex output
+stargazer(m.val.2a, title = "Reward Rate by value estimate, monetary reward, liquid, block: YA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.val.2a)
+
+# Creating latex output
+stargazer(m.val.2b, title = "Reward Rate by value estimate, monetary reward, liquid, block: OA only", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.val.2b)
 ```
 
 \newpage
@@ -1102,11 +1382,16 @@ summary(m.selfreport.1.OA)
 t.test(x = subset(data.liking, liquid=="Juice" & group=="OA")$rating,
        y = subset(data.liking, liquid=="Neutral" & group=="OA")$rating,
        paired = TRUE)
-
+cohen.d(subset(data.liking, group=="OA" & liquid=="Juice")$rating,
+        subset(data.liking, group=="OA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 # OA NvS
 t.test(x = subset(data.liking, liquid=="Neutral" & group=="OA")$rating,
        y = subset(data.liking, liquid=="Saltwater" & group=="OA")$rating,
        paired = TRUE)
+cohen.d(subset(data.liking, group=="OA" & liquid=="Neutral")$rating,
+        subset(data.liking, group=="OA" & liquid=="Saltwater")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA
 m.selfreport.1.YA<-lmer(formula = rating ~ liqCode + (1|subID), 
@@ -1116,21 +1401,63 @@ summary(m.selfreport.1.YA)
 t.test(x = subset(data.liking, liquid=="Juice" & group=="YA")$rating,
        y = subset(data.liking, liquid=="Neutral" & group=="YA")$rating,
        paired = TRUE)
+cohen.d(subset(data.liking, group=="YA" & liquid=="Juice")$rating,
+        subset(data.liking, group=="YA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+
 # YA NvS
 t.test(x = subset(data.liking, liquid=="Neutral" & group=="YA")$rating,
        y = subset(data.liking, liquid=="Saltwater" & group=="YA")$rating,
        paired = TRUE)
+cohen.d(subset(data.liking, group=="YA" & liquid=="Neutral")$rating,
+        subset(data.liking, group=="YA" & liquid=="Saltwater")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
+
 
 # OA vs YA
 # Juice
 t.test(x = subset(data.liking, liquid=="Juice" & group=="OA")$rating,
        y = subset(data.liking, liquid=="Juice" & group=="YA")$rating)
+cohen.d(subset(data.liking, group=="OA" & liquid=="Juice")$rating,
+        subset(data.liking, group=="YA" & liquid=="Juice")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 # Neutral
 t.test(x = subset(data.liking, liquid=="Neutral" & group=="OA")$rating,
        y = subset(data.liking, liquid=="Neutral" & group=="YA")$rating)
+cohen.d(subset(data.liking, group=="OA" & liquid=="Neutral")$rating,
+        subset(data.liking, group=="YA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 # Saltwater
 t.test(x = subset(data.liking, liquid=="Saltwater" & group=="OA")$rating,
        y = subset(data.liking, liquid=="Saltwater" & group=="YA")$rating)
+cohen.d(subset(data.liking, group=="OA" & liquid=="Saltwater")$rating,
+        subset(data.liking, group=="YA" & liquid=="Saltwater")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
+
+```
+
+## Calculating the effect size for Appendix
+```{r Likingeffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+class(m.selfreport.1)<-"lmerMod"
+stargazer(m.selfreport.1, title = "Liking rating by liquid and age group", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.1)
+
+# OA only
+class(m.selfreport.1.OA)<-"lmerMod"
+stargazer(m.selfreport.1.OA, title = "Liking rating by liquid: OA only ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.1.OA)
+
+# YA only
+class(m.selfreport.1.YA)<-"lmerMod"
+stargazer(m.selfreport.1.YA, title = "Liking rating by liquid: YA only ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.1.YA)
 ```
 
 ## Plot of Self-Report Intensity Ratings per Liquid
@@ -1180,11 +1507,16 @@ summary(m.selfreport.2.OA)
 t.test(x = subset(data.intensity, liquid=="Juice" & group=="OA")$rating,
        y = subset(data.intensity, liquid=="Neutral" & group=="OA")$rating,
        paired = TRUE)
-
+cohen.d(subset(data.intensity, group=="OA" & liquid=="Juice")$rating,
+        subset(data.intensity, group=="OA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 # OA NvS
 t.test(x = subset(data.intensity, liquid=="Saltwater" & group=="OA")$rating,
        y = subset(data.intensity, liquid=="Neutral" & group=="OA")$rating,
        paired = TRUE)
+cohen.d(subset(data.intensity, group=="OA" & liquid=="Saltwater")$rating,
+        subset(data.intensity, group=="OA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # YA
 m.selfreport.2.YA<-lmer(formula = rating ~ liqCode + (1|subID), 
@@ -1194,21 +1526,60 @@ summary(m.selfreport.2.YA)
 t.test(x = subset(data.intensity, liquid=="Juice" & group=="YA")$rating,
        y = subset(data.intensity, liquid=="Neutral" & group=="YA")$rating,
        paired = TRUE)
+cohen.d(subset(data.intensity, group=="YA" & liquid=="Juice")$rating,
+        subset(data.intensity, group=="YA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 # YA NvS
 t.test(x = subset(data.intensity, liquid=="Saltwater" & group=="YA")$rating,
        y = subset(data.intensity, liquid=="Neutral" & group=="YA")$rating,
        paired = TRUE)
+cohen.d(subset(data.intensity, group=="YA" & liquid=="Saltwater")$rating,
+        subset(data.intensity, group=="YA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = TRUE, hedges.correction = FALSE)
 
 # OA vs YA
 # Juice
 t.test(x = subset(data.intensity, liquid=="Juice" & group=="OA")$rating,
        y = subset(data.intensity, liquid=="Juice" & group=="YA")$rating)
+cohen.d(subset(data.intensity, group=="OA" & liquid=="Juice")$rating,
+        subset(data.intensity, group=="YA" & liquid=="Juice")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 # Neutral
 t.test(x = subset(data.intensity, liquid=="Neutral" & group=="OA")$rating,
        y = subset(data.intensity, liquid=="Neutral" & group=="YA")$rating)
+cohen.d(subset(data.intensity, group=="OA" & liquid=="Neutral")$rating,
+        subset(data.intensity, group=="YA" & liquid=="Neutral")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
 # Saltwater
 t.test(x = subset(data.intensity, liquid=="Saltwater" & group=="OA")$rating,
        y = subset(data.intensity, liquid=="Saltwater" & group=="YA")$rating)
+cohen.d(subset(data.intensity, group=="OA" & liquid=="Saltwater")$rating,
+        subset(data.intensity, group=="YA" & liquid=="Saltwater")$rating,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
+```
+
+## Calculating the effect size for Appendix
+```{r Intensityeffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+class(m.selfreport.2)<-"lmerMod"
+stargazer(m.selfreport.2, title = "Intensity rating by liquid and age group", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.2)
+
+# OA only
+class(m.selfreport.2.OA)<-"lmerMod"
+stargazer(m.selfreport.2.OA, title = "Intensity rating by liquid: OA only ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.2.OA)
+
+# YA only
+class(m.selfreport.2.YA)<-"lmerMod"
+stargazer(m.selfreport.2.YA, title = "Intensity rating by liquid: YA only ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.2.YA)
 ```
 
 \newpage
@@ -1277,7 +1648,7 @@ summary(m.selfreport.3.OA.NvS)
 m.selfreport.3.YA<-lmer(formula = rating ~ liqCode*rewCode + (1|subID), 
                         data = subset(data.motive9, group=="YA"))
 summary(m.selfreport.3.YA)
-# YA JvN
+s# YA JvN
 m.selfreport.3.YA.JvN<-lmer(formula = rating ~ liqCode*rewCode + (1|subID),
                         data = subset(data.motive9, group=="YA" & liquid!="Saltwater"))
 summary(m.selfreport.3.YA.JvN)
@@ -1300,6 +1671,55 @@ m.selfreport.3.OAYA.Saltwater<-lmer(formula = rating ~ groupCode*rewCode + (1|su
                         data = subset(data.motive9, liquid=="Saltwater"))
 summary(m.selfreport.3.OAYA.Saltwater)
 ```
+
+## Calculating the effect size for Appendix
+```{r Motivationeffectsize, echo=TRUE, results='hide'}
+# Creating latex output
+class(m.selfreport.3)<-"lmerMod"
+stargazer(m.selfreport.3, title = "Motivation rating by liquid, monetary reward, and age group", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.3)
+
+# OA only
+class(m.selfreport.3.OA)<-"lmerMod"
+stargazer(m.selfreport.3.OA, title = "Motivation rating by liquid and monetary reward: OA only ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.3.OA)
+# OA JvN
+class(m.selfreport.3.OA.JvN)<-"lmerMod"
+stargazer(m.selfreport.3.OA.JvN, title = "Motivation rating by liquid and monetary reward: OA Juice vs Neutral ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.3.OA.JvN)
+# OA SvN
+class(m.selfreport.3.OA.NvS)<-"lmerMod"
+stargazer(m.selfreport.3.OA.NvS, title = "Motivation rating by liquid and monetary reward: OA Saltwater vs Neutral ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.3.OA.NvS)
+
+# YA only
+class(m.selfreport.3.YA)<-"lmerMod"
+stargazer(m.selfreport.3.YA, title = "Motivation rating by liquid and monetary reward: YA only ", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.3.YA)
+# YA JvN
+class(m.selfreport.3.YA.JvN)<-"lmerMod"
+stargazer(m.selfreport.3.YA.JvN, title = "Motivation rating by liquid and monetary reward: YA Juice vs Neutral", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.3.YA.JvN)
+# YA SvN
+class(m.selfreport.3.YA.NvS)<-"lmerMod"
+stargazer(m.selfreport.3.YA.NvS, title = "Motivation rating by liquid and monetary reward: YA Saltwater vs Neutral", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.3.YA.NvS)
+```
+
 
 \newpage
 ## Comparing Motivation Ratings and Reward Rate
@@ -1328,6 +1748,7 @@ p.rating.4<-ggplot(data = incentive9.means.indiv,
     strip.text.y = element_text(size = 12))
 p.rating.4
 ```
+
 
 ```{r}
 incentive9.means.indiv2<-filter(incentive9.means.indiv, is.na(rating)!=TRUE)
@@ -1360,11 +1781,213 @@ summary(m.selfreport.4.YA.L2)
 anova(m.selfreport.4.YA.L1, m.selfreport.4.YA.L2)
 ```
 
+## Calculating the effect size for Appendix
+```{r Hierarchyeffectsize, echo=TRUE, results='hide'}
+# OA hierarchical regression
+# Creating latex output
+class(m.selfreport.4.OA.L1)<-"lmerMod"
+class(m.selfreport.4.OA.L2)<-"lmerMod"
+stargazer(m.selfreport.4.OA.L1, m.selfreport.4.OA.L2, title = "Older Adult Hierarchical Regression", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.4.OA.L1)
+sjstats::r2(x = m.selfreport.4.OA.L2)
+
+# YA hierarchical regression
+# Creating latex output
+class(m.selfreport.4.YA.L1)<-"lmerMod"
+class(m.selfreport.4.YA.L2)<-"lmerMod"
+stargazer(m.selfreport.4.YA.L1, m.selfreport.4.YA.L2, title = "Younger Adult Hierarchical Regression", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.selfreport.4.YA.L1)
+sjstats::r2(x = m.selfreport.4.YA.L2)
+```
+
+
+## BIS/BAS
+```{r}
+data.bisbas<-data.selfreport %>% 
+  select(subID, group, age, basdrive, basfun, basreward, bis) %>%
+  #mutate(subID = as.factor(subID)) %>%
+  right_join(y = group.means, by = c("subID","group")) %>%
+  mutate(groupcode = factor(group, levels=c("YA","OA"), labels=c(0,1)))
+
+p.basdrive<-ggplot(data = data.bisbas, 
+                 mapping = aes(x = basdrive, y = meanRR, color=group, shape=group)) +
+  geom_point(alpha=0.75) +
+  geom_smooth(method="lm", se=FALSE) +
+  #facet_grid(.~group) +
+  xlab("BAS drive") + ylab("Reward Rate") + 
+  scale_color_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=12),
+        #legend.position="none",
+        strip.text.x = element_text(size = 12),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(.75, "lines")) 
+p.basdrive
+
+p.basfun<-ggplot(data = data.bisbas, 
+                 mapping = aes(x = basfun, y = meanRR, color=group, shape=group)) +
+  geom_point(alpha=0.75) +
+  geom_smooth(method="lm", se=FALSE) +
+  #facet_grid(.~group) +
+  xlab("BAS fun") + ylab("Reward Rate") + 
+  scale_color_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=12),
+        #legend.position="none",
+        strip.text.x = element_text(size = 12),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(.75, "lines")) 
+p.basfun
+
+p.basreward<-ggplot(data = data.bisbas, 
+                 mapping = aes(x = basreward, y = meanRR, color=group, shape=group)) +
+  geom_point(alpha=0.75) +
+  geom_smooth(method="lm", se=FALSE) +
+  #facet_grid(.~group) +
+  xlab("BAS reward") + ylab("Reward Rate") + 
+  scale_color_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=12),
+        #legend.position="none",
+        strip.text.x = element_text(size = 12),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(.75, "lines")) 
+p.basreward
+
+p.bis<-ggplot(data = data.bisbas, 
+                 mapping = aes(x = bis, y = meanRR, color=group, shape=group)) +
+  geom_point(alpha=0.75) +
+  geom_smooth(method="lm", se=FALSE) +
+  #facet_grid(.~group) +
+  xlab("BIS") + ylab("Reward Rate") + 
+  scale_color_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=12),
+        #legend.position="none",
+        strip.text.x = element_text(size = 12),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(.75, "lines")) 
+p.bis
+
+# BAS drive
+m.basdrive<-lm(formula = meanRR ~ basfun*age, data = data.bisbas)
+summary(m.basdrive)
+# BAS fun
+m.basfun<-lm(formula = meanRR ~ basdrive*age, data = data.bisbas)
+summary(m.basfun)
+# BAS reward
+m.basreward<-lm(formula = meanRR ~ basreward*age, data = data.bisbas)
+summary(m.basreward)
+# BIS
+m.bis<-lm(formula = meanRR ~ bis*age, data = data.bisbas)
+summary(m.bis)
+
+# linear model with reward rate predicted by BIS/BAS measures (in manuscript)
+m.bisbas<-lm(formula = meanRR ~ bis + basreward + basfun + basdrive + age, data = data.bisbas)
+summary(m.bisbas)
+stargazer(m.bisbas, title = "Reward Rate by BIS/BAS Ratings", 
+          ci = TRUE, t.auto = TRUE, p.auto = TRUE, model.names = TRUE, single.row=TRUE)
+# Calculating marginal and conditional r^2 for the model
+sjstats::r2(x = m.bisbas)
+
+# Testing for age differences in the ratings
+# BIS 
+t.test(x = subset(data.bisbas, group=="OA")$bis,
+       y = subset(data.bisbas, group=="YA")$bis,
+       paired=FALSE)
+cohen.d(subset(data.bisbas, group=="OA")$bis,
+        subset(data.bisbas, group=="YA")$bis,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
+# BAS REWARD 
+t.test(x = subset(data.bisbas, group=="OA")$basreward,
+       y = subset(data.bisbas, group=="YA")$basreward,
+       paired=FALSE)
+cohen.d(subset(data.bisbas, group=="OA")$basreward,
+        subset(data.bisbas, group=="YA")$basreward,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
+# BAS FUN
+t.test(x = subset(data.bisbas, group=="OA")$basfun,
+       y = subset(data.bisbas, group=="YA")$basfun,
+       paired=FALSE)
+cohen.d(subset(data.bisbas, group=="OA")$basfun,
+        subset(data.bisbas, group=="YA")$basfun,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
+# BAS DRIVE 
+t.test(x = subset(data.bisbas, group=="OA")$basdrive,
+       y = subset(data.bisbas, group=="YA")$basdrive,
+       paired=FALSE)
+cohen.d(subset(data.bisbas, group=="OA")$basdrive,
+        subset(data.bisbas, group=="YA")$basdrive,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
+
+#p = c(age_bis$p.value, age_basreward$p.value, age_basfun$p.value, age_basdrive$p.value)
+#p.adjust(p, method = "holm", n = length(p))
+
+# GIVEN THE AGE DIFFERNCE IN BIS/BAS, CHECKING IF THEY RELATE TO TASK PERFORMANCE
+
+# Calculate difference reward rates for different liquid conditions
+liq.means.wide <- liq.means %>% select(subID, group, liquid, meanRR) %>%
+  spread(key = liquid, value = "meanRR" ) %>%
+  mutate(JvN = juice - neutral, SvN = saltwater - neutral)
+data.bisbas <- left_join(x = data.bisbas, y = liq.means.wide)
+
+# Comparison of BIS vs Juice vs Neutral Reward Rates
+p.bisRR<-ggplot(data = data.bisbas, 
+                 mapping = aes(x = bis, y = SvN, color=group, shape=group)) +
+  geom_point(alpha=0.75) +
+  geom_smooth(method="lm", se=FALSE) +
+  #facet_grid(.~group) +
+  xlab("BIS") + ylab("Saltwater vs Neutral Reward Rate") + 
+  scale_color_brewer(palette="Set1") +
+  theme(#plot.title=element_text(size=22,face="bold", vjust=2),
+        axis.title=element_text(size=12,face = "bold"),
+        axis.text=element_text(size=12),
+        #legend.position="none",
+        strip.text.x = element_text(size = 12),
+        strip.text.y = element_text(size = 12),
+        panel.spacing = unit(.75, "lines")) 
+p.bisRR
+
+# Saltwater vs Neutral Reward Rate correlation with BIS
+r.bis<-cor.test(x = data.bisbas$bis, y = data.bisbas$SvN)
+r.bis
+
+# Juice vs Neutral Reward Rate correlation with BAS reward
+cor.test(x = data.bisbas$basreward, y = data.bisbas$JvN)
+
+# Juice vs Neutral Reward Rate correlation with BAS fun
+cor.test(x = data.bisbas$basfun, y = data.bisbas$JvN)
+
+# Juice vs Neutral Reward Rate correlation with BAS drive
+cor.test(x = data.bisbas$basdrive, y = data.bisbas$JvN)
+```
+
+
+## Analysis comparing OA performance in block 3 vs YA performance in block 1
+```{r}
+# OA block 3 vs YA block 1
+t.test(x = subset(incentive9.means, group=="OA" & liquid=="saltwater" & money=="$")$meanRR,
+       y = subset(incentive9.means, group=="YA" & liquid=="saltwater" & money=="$")$meanRR,
+       paired=FALSE)
+cohen.d(subset(liq.means, group=="OA" & block==3)$meanRR,
+        subset(liq.means, group=="YA" & block==1)$meanRR,
+        na.rm = TRUE, pooled = TRUE, paired = FALSE, hedges.correction = FALSE)
+```
+
+
 # Manuscript Figures
 ```{r}
-ms.path="/Users/debbieyee/Documents/Manuscripts/In Progress/Motivation Aging/Figures/"
-ggsave(filename = "Figure2a_group.eps", plot = p.RR.0, 
-       device=cairo_ps, fallback_resolution = 600,
+#ms.path="/Users/debbieyee/Documents/Manuscripts/In Progress/Motivation Aging/Figures/"
+ms.path="/Users/debbieyee/Documents/Manuscripts/2018/MotivationAging/Figures/"
+ggsave(filename = "Figure2a_group.eps", plot = p.RR.0, device="eps",
        path = ms.path, width = 3, height = 6, scale = 1)
 ggsave(filename = "Figure2b_RT.eps", plot = p.RT.0, device = "eps", 
        path = ms.path, width = 6, height = 6, scale = 1)
@@ -1372,7 +1995,7 @@ ggsave(filename = "Figure2c_ACC.eps", plot = p.ACC.0, device = "eps",
        path = ms.path, width = 6, height = 6, scale = 1)
 ggsave(filename = "Figure3_Transition.eps", plot = p.trans.1, 
        device = cairo_ps,
-       path = ms.path, width = 12, height = 4, scale = 1)
+       path = ms.path, width = 8, height = 4, scale = 1)
 ggsave(filename = "Figure4a_RR-mon-liq.eps", plot = p.RR.2, 
        device = "eps",
        path = ms.path, width = 8, height = 4, scale = 1)
